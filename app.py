@@ -160,19 +160,74 @@ with st.sidebar:
     if st.button("Sair",use_container_width=True): st.session_state.usuario=None; st.rerun()
 
 def pagina_dashboard():
-    st.markdown("<div class='pg-title'>📊 Dashboard</div>",unsafe_allow_html=True)
-    st.markdown(f"<div class='pg-sub'>{datetime.now().strftime('%d/%m/%Y %H:%M')}</div>",unsafe_allow_html=True)
+    # Header
+    now = datetime.now()
+    st.markdown(f"""
+    <div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem'>
+        <div>
+            <div style='font-size:1.3rem;font-weight:800;color:#F0F6FC'>Dashboard</div>
+            <div style='font-size:.75rem;color:#8B949E'>{now.strftime("%A, %d de %B de %Y  %H:%M")}</div>
+        </div>
+    </div>""",unsafe_allow_html=True)
+
     todos=ga(sf_key=None)
-    if not todos: st.info("Nenhum item lancado ainda."); return
+    if not todos:
+        st.markdown("""<div style='text-align:center;padding:4rem 2rem;background:#161B22;border:1px dashed #30363D;border-radius:12px'>
+            <div style='font-size:2rem'>📦</div>
+            <div style='color:#8B949E;margin-top:.5rem'>Nenhum produto lançado ainda.</div>
+        </div>""",unsafe_allow_html=True); return
+
     df=pd.DataFrame(todos)
     df["loja"]=df["pc_secoes"].apply(lambda x:x["loja"] if x else "")
     df["secao_nome"]=df["pc_secoes"].apply(lambda x:x["nome"] if x else "")
     df["total"]=pd.to_numeric(df.get("total",0),errors="coerce").fillna(0)
     df["qtd"]=pd.to_numeric(df.get("qtd",0),errors="coerce").fillna(0)
-    c1,c2,c3,c4,c5,c6=st.columns(6)
-    for col,lbl,val,cor in [(c1,"Total Geral",brl(df["total"].sum()),"#58A6FF"),(c2,"Distribuidora",brl(df[df["loja"]=="distribuidora"]["total"].sum()),"#58A6FF"),(c3,"Sublimacao",brl(df[df["loja"]=="sublimacao"]["total"].sum()),"#3FB950"),(c4,"Pendentes",str((df["status"]=="Pendente").sum()),"#D2991E"),(c5,"Aprovados",str((df["status"]=="Aprovado").sum()),"#58A6FF"),(c6,"Entregues",str((df["status"]=="Entregue").sum()),"#3FB950")]:
-        col.markdown(f"<div class='kpi-box' style='--c:{cor}'><div class='kpi-l'>{lbl}</div><div class='kpi-v'>{val}</div></div>",unsafe_allow_html=True)
+
+    total_geral = df["total"].sum()
+    total_dist  = df[df["loja"]=="distribuidora"]["total"].sum()
+    total_sub   = df[df["loja"]=="sublimacao"]["total"].sum()
+    n_pend  = (df["status"]=="Pendente").sum()
+    n_aprov = (df["status"]=="Aprovado").sum()
+    n_comp  = (df["status"]=="Comprado").sum()
+    n_entr  = (df["status"]=="Entregue").sum()
+    n_total = len(df)
+
+    # KPI row 1 — valores financeiros
+    st.markdown("<div style='display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:.6rem'>",unsafe_allow_html=True)
+    kpis_fin = [
+        ("💰 Total em Aberto", brl(total_geral), "#58A6FF", "soma de todos os itens ativos"),
+        ("📦 Distribuidora",   brl(total_dist),  "#58A6FF", f"{len(df[df['loja']=='distribuidora'])} itens"),
+        ("🎨 Sublimação",      brl(total_sub),   "#3FB950", f"{len(df[df['loja']=='sublimacao'])} itens"),
+    ]
+    cols_fin = st.columns(3)
+    for i,(lbl,val,cor,sub) in enumerate(kpis_fin):
+        cols_fin[i].markdown(f"""<div class='kpi-box' style='--c:{cor}'>
+            <div class='kpi-l'>{lbl}</div>
+            <div class='kpi-v'>{val}</div>
+            <div style='font-size:.7rem;color:#8B949E;margin-top:.1rem'>{sub}</div>
+        </div>""",unsafe_allow_html=True)
+
+    st.markdown("<br style='margin:.3rem'>",unsafe_allow_html=True)
+
+    # KPI row 2 — contadores de status
+    status_kpis = [
+        ("🟡 Pendente",  n_pend,  "#D2991E"),
+        ("🔵 Aprovado",  n_aprov, "#58A6FF"),
+        ("🟣 Comprado",  n_comp,  "#A371F7"),
+        ("🟢 Entregue",  n_entr,  "#3FB950"),
+        ("📋 Total Itens", n_total, "#8B949E"),
+    ]
+    cols_st = st.columns(5)
+    for i,(lbl,val,cor) in enumerate(status_kpis):
+        cols_st[i].markdown(f"""<div style='background:#161B22;border:1px solid #21262D;border-radius:10px;
+            padding:.7rem;text-align:center;border-top:2px solid {cor}'>
+            <div style='font-size:.68rem;color:#8B949E;text-transform:uppercase;letter-spacing:.05em;font-weight:600'>{lbl}</div>
+            <div style='font-size:1.4rem;font-weight:700;color:{cor}'>{val}</div>
+        </div>""",unsafe_allow_html=True)
+
     st.markdown("<br>",unsafe_allow_html=True)
+
+    # Alertas urgência
     if "dt_necessidade" in df.columns:
         urg=[]
         for _,r in df.iterrows():
@@ -182,40 +237,69 @@ def pagina_dashboard():
                 if d<=3: urg.append((d,r))
             except: pass
         if urg:
-            st.markdown(f"### ⚠️ {len(urg)} item(ns) urgente(s)")
+            st.markdown(f"""<div style='background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.3);
+                border-radius:10px;padding:.8rem 1rem;margin-bottom:1rem'>
+                <div style='font-size:.85rem;font-weight:700;color:#F85149;margin-bottom:.4rem'>
+                    ⚠️ {len(urg)} item(ns) com prazo crítico (próximos 3 dias)
+                </div>""",unsafe_allow_html=True)
             for d,r in sorted(urg):
-                st.markdown(f"<div style='background:#161B22;border:1px solid #21262D;border-radius:8px;padding:.6rem 1rem;margin-bottom:.3rem'><b style='color:#F0F6FC'>{r['produto']}</b> · <span style='color:#8B949E'>{r['secao_nome']}</span> {dbd(r['dt_necessidade'])}</div>",unsafe_allow_html=True)
-            st.divider()
-    g1,g2=st.columns(2)
+                st.markdown(f"<div style='font-size:.8rem;color:#E6EDF3;padding:.2rem 0'>"
+                            f"• <b>{r['produto']}</b> — {r['secao_nome']} {dbd(r['dt_necessidade'])}</div>",
+                            unsafe_allow_html=True)
+            st.markdown("</div>",unsafe_allow_html=True)
+
+    # Gráficos
     cm={"Pendente":"#D2991E","Aprovado":"#58A6FF","Comprado":"#A371F7","Entregue":"#3FB950","Cancelado":"#F85149"}
+    chart_layout = dict(paper_bgcolor="#161B22",plot_bgcolor="#0D1117",
+                        margin=dict(t=30,b=10,l=10,r=10),height=220,
+                        font=dict(color="#E6EDF3",size=11),
+                        xaxis=dict(gridcolor="#21262D",showline=False),
+                        yaxis=dict(gridcolor="#21262D",showline=False))
+
+    g1,g2=st.columns(2)
     with g1:
-        st.markdown("#### Por Status")
-        s=df.groupby("status")["total"].sum().reset_index()
-        fig=px.bar(s,x="status",y="total",color="status",color_discrete_map=cm,template="plotly_dark")
-        fig.update_layout(showlegend=False,paper_bgcolor="#161B22",plot_bgcolor="#0D1117",margin=dict(t=10,b=10),height=240,font=dict(color="#E6EDF3"),xaxis=dict(gridcolor="#21262D"),yaxis=dict(gridcolor="#21262D"))
+        st.markdown("<div style='font-size:.85rem;font-weight:600;color:#8B949E;margin-bottom:.3rem'>ITENS POR STATUS</div>",unsafe_allow_html=True)
+        s=df.groupby("status").size().reset_index(name="qtd")
+        fig=px.bar(s,x="status",y="qtd",color="status",color_discrete_map=cm,template="plotly_dark",text="qtd")
+        fig.update_traces(textposition="outside",textfont_size=11)
+        fig.update_layout(showlegend=False,**chart_layout)
         st.plotly_chart(fig,use_container_width=True)
+
     with g2:
-        st.markdown("#### Por Loja")
-        l=df.groupby("loja")["total"].sum().reset_index()
+        st.markdown("<div style='font-size:.85rem;font-weight:600;color:#8B949E;margin-bottom:.3rem'>DISTRIBUIÇÃO POR LOJA</div>",unsafe_allow_html=True)
+        l=df.groupby("loja").size().reset_index(name="qtd")
         l["nome"]=l["loja"].map({"distribuidora":"Distribuidora","sublimacao":"Sublimacao"})
-        fig2=px.pie(l,names="nome",values="total",color_discrete_sequence=["#58A6FF","#3FB950"],hole=.5,template="plotly_dark")
-        fig2.update_layout(paper_bgcolor="#161B22",margin=dict(t=10,b=10),height=240,font=dict(color="#E6EDF3"),legend=dict(bgcolor="#161B22"))
+        fig2=px.pie(l,names="nome",values="qtd",color_discrete_sequence=["#58A6FF","#3FB950"],hole=.55,template="plotly_dark")
+        fig2.update_traces(textinfo="percent+label",textfont_size=11)
+        fig2.update_layout(paper_bgcolor="#161B22",margin=dict(t=30,b=10),height=220,
+                           font=dict(color="#E6EDF3"),showlegend=False)
         st.plotly_chart(fig2,use_container_width=True)
+
     g3,g4=st.columns(2)
     with g3:
-        st.markdown("#### Top 5 Comprados")
-        top=df[df["status"].isin(["Comprado","Entregue"])].groupby("produto")["qtd"].sum().sort_values(ascending=False).head(5).reset_index()
+        st.markdown("<div style='font-size:.85rem;font-weight:600;color:#8B949E;margin-bottom:.3rem'>TOP 5 MAIS COMPRADOS (qtd)</div>",unsafe_allow_html=True)
+        top=df[df["status"].isin(["Comprado","Entregue"])].groupby("produto")["qtd"].sum().sort_values(ascending=True).tail(5).reset_index()
         if not top.empty:
-            fig3=px.bar(top,x="qtd",y="produto",orientation="h",template="plotly_dark",color_discrete_sequence=["#58A6FF"])
-            fig3.update_layout(paper_bgcolor="#161B22",plot_bgcolor="#0D1117",margin=dict(t=10,b=10),height=240,font=dict(color="#E6EDF3"),xaxis=dict(gridcolor="#21262D"),yaxis=dict(gridcolor="#21262D"))
+            fig3=px.bar(top,x="qtd",y="produto",orientation="h",template="plotly_dark",
+                        color_discrete_sequence=["#3FB950"],text="qtd")
+            fig3.update_traces(textposition="outside")
+            fig3.update_layout(showlegend=False,**chart_layout)
             st.plotly_chart(fig3,use_container_width=True)
-        else: st.caption("Nenhum comprado ainda.")
+        else:
+            st.markdown("<div style='color:#8B949E;font-size:.8rem;padding:2rem 0;text-align:center'>Nenhum item comprado ainda.</div>",unsafe_allow_html=True)
+
     with g4:
-        st.markdown("#### Por Secao")
+        st.markdown("<div style='font-size:.85rem;font-weight:600;color:#8B949E;margin-bottom:.3rem'>VALOR POR SEÇÃO</div>",unsafe_allow_html=True)
         sec=df.groupby(["secao_nome","loja"])["total"].sum().reset_index().sort_values("total",ascending=True)
-        fig4=px.bar(sec,x="total",y="secao_nome",orientation="h",color="loja",color_discrete_map={"distribuidora":"#58A6FF","sublimacao":"#3FB950"},template="plotly_dark",labels={"total":"Total","secao_nome":"","loja":"Loja"})
-        fig4.update_layout(paper_bgcolor="#161B22",plot_bgcolor="#0D1117",margin=dict(t=10,b=10),height=240,font=dict(color="#E6EDF3"),xaxis=dict(gridcolor="#21262D"),yaxis=dict(gridcolor="#21262D"),legend=dict(bgcolor="#161B22"))
-        st.plotly_chart(fig4,use_container_width=True)
+        sec=sec[sec["total"]>0]
+        if not sec.empty:
+            fig4=px.bar(sec,x="total",y="secao_nome",orientation="h",color="loja",
+                        color_discrete_map={"distribuidora":"#58A6FF","sublimacao":"#3FB950"},
+                        template="plotly_dark",labels={"total":"R$","secao_nome":"","loja":"Loja"})
+            fig4.update_layout(legend=dict(bgcolor="#161B22",orientation="h",yanchor="bottom",y=1.02),**chart_layout)
+            st.plotly_chart(fig4,use_container_width=True)
+        else:
+            st.markdown("<div style='color:#8B949E;font-size:.8rem;padding:2rem 0;text-align:center'>Sem valores registrados.</div>",unsafe_allow_html=True)
 
 def pagina_loja(loja):
     info=LOJAS[loja]; cor=info["cor"]; fmc=fm()
