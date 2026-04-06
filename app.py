@@ -251,11 +251,49 @@ def pagina_loja(loja):
     st.markdown("<div class='pg-sub'>Lista ativa (Pendente/Aprovado). Comprado e Entregue vao para o Historico.</div>",unsafe_allow_html=True)
     st.markdown(f"<div class='flow'><span class='fstep' style='background:rgba(210,153,34,.15);color:#D2991E'>Pendente</span><span class='farr'>→</span><span class='fstep' style='background:rgba(88,166,255,.15);color:#58A6FF'>Aprovado</span><span class='farr'>→</span><span class='fstep' style='background:rgba(163,113,247,.2);color:#A371F7'>Comprado → Historico</span><span class='farr'>→</span><span class='fstep' style='background:rgba(63,185,80,.2);color:#3FB950'>Entregue → Historico</span></div>",unsafe_allow_html=True)
 
-    ca,cb,cc,cd=st.columns([3,1,1,1])
+    ca,cb,cc,cd,ce=st.columns([3,1,1,1.3,1.3])
     busca=ca.text_input("",placeholder="Buscar produto, marca, SKU...",label_visibility="collapsed",key=f"bsc_{loja}")
     fst=cb.selectbox("",["Todos"]+ST_AT,key=f"fst_{loja}",label_visibility="collapsed")
     fpr=cc.selectbox("",["Todas"]+PRIO,key=f"fpr_{loja}",label_visibility="collapsed")
-    if cd.button("+ Nova Secao",use_container_width=True,key=f"bns_{loja}"): st.session_state[f"ns_{loja}"]=True
+    if cd.button("Criar Produto",use_container_width=True,key=f"bcp_{loja}",type="primary"): st.session_state[f"cp_{loja}"]=not st.session_state.get(f"cp_{loja}",False)
+    if ce.button("+ Nova Secao",use_container_width=True,key=f"bns_{loja}"): st.session_state[f"ns_{loja}"]=True
+
+    if st.session_state.get(f"cp_{loja}"):
+        secoes_disp=gs(loja)
+        if not secoes_disp:
+            st.warning("Crie uma secao primeiro."); st.session_state[f"cp_{loja}"]=False
+        else:
+            sec_opts={s["nome"]:s["id"] for s in secoes_disp}
+            forns_cp=gf(); fm2_cp={f["nome"]:f["id"] for f in forns_cp}; fopts_cp=["(Nenhum)"]+list(fm2_cp.keys())
+            st.markdown("<div style='background:#161B22;border:2px solid #238636;border-radius:12px;padding:1.4rem;margin-bottom:1rem'>",unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size:1.1rem;font-weight:700;color:#F0F6FC;margin-bottom:1rem'>Novo Produto</div>",unsafe_allow_html=True)
+            with st.form(f"fcp_{loja}"):
+                st.markdown("**Dados do Produto**")
+                p1,p2,p3,p4=st.columns(4)
+                sec_esc=p1.selectbox("Secao *",list(sec_opts.keys()))
+                prod_cp=p2.text_input("Produto *")
+                marca_cp=p3.text_input("Marca")
+                sku_cp=p4.text_input("SKU")
+                p5,p6,p7=st.columns(3)
+                ean_cp=p5.text_input("EAN")
+                forn_cp=p6.selectbox("Fornecedor",fopts_cp)
+                img_cp=p7.text_input("URL Imagem",placeholder="https://...")
+                st.markdown("**Quantidade e Preco**")
+                q1,q2,q3,q4,q5=st.columns(5)
+                qtd_cp=q1.number_input("Qtd",min_value=0.0,step=1.0)
+                un_cp=q2.selectbox("Unidade",UNID)
+                preco_cp=q3.number_input("Preco Unit.",min_value=0.0,step=0.01,format="%.2f")
+                prio_cp=q4.selectbox("Prioridade",PRIO,index=1)
+                dt_cp=q5.date_input("Dt Necessidade",value=None)
+                obs_cp=st.text_area("Obs",height=55)
+                b1,b2=st.columns(2)
+                if b1.form_submit_button("Adicionar Produto",type="primary"):
+                    if prod_cp.strip():
+                        ai(sec_opts[sec_esc],{"produto":prod_cp.strip(),"marca":marca_cp.strip(),"sku":sku_cp.strip(),"ean":ean_cp.strip(),"fornecedor_id":fm2_cp.get(forn_cp) if forn_cp!="(Nenhum)" else None,"imagem_url":img_cp.strip() or None,"qtd":qtd_cp,"unidade":un_cp,"preco_unit":preco_cp,"total":round(qtd_cp*preco_cp,2),"prioridade":prio_cp,"dt_necessidade":str(dt_cp) if dt_cp else None,"obs":obs_cp.strip(),"status":"Pendente"},u["nome"])
+                        st.session_state[f"cp_{loja}"]=False; st.rerun()
+                    else: st.warning("Informe o nome do produto.")
+                if b2.form_submit_button("Cancelar"): st.session_state[f"cp_{loja}"]=False; st.rerun()
+            st.markdown("</div>",unsafe_allow_html=True)
 
     if st.session_state.get(f"ns_{loja}"):
         with st.form(f"fns_{loja}"):
@@ -352,10 +390,6 @@ def pagina_loja(loja):
                 else:
                     st.markdown("<div style='color:#8B949E;padding:.5rem 0'>Nenhum item nesta secao.</div>",unsafe_allow_html=True)
 
-                st.markdown("<hr style='margin:.6rem 0'>",unsafe_allow_html=True)
-                st.markdown("**Adicionar item nesta secao**")
-                r=form_item(f"fadd_{sec['id']}")
-                if r is not None: ai(sec["id"],r,u["nome"]); st.rerun()
                 st.markdown("</div>",unsafe_allow_html=True)
 
     st.markdown(f"<div class='total-bar'><span style='color:#8B949E'>{info['nome']} — Total em aberto:</span> <span style='color:{cor};font-size:1.2rem;font-weight:700;margin-left:.8rem'>{brl(total_loja)}</span></div>",unsafe_allow_html=True)
