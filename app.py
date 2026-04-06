@@ -378,18 +378,19 @@ def pagina_loja(loja):
                     c7.markdown(bdg(item.get("prioridade","")),unsafe_allow_html=True)
                     with c8:
                         with st.popover("Editar"):
-                            st.markdown(f"<div style='font-weight:600;color:#F0F6FC;margin-bottom:.4rem'>{pnome}</div>",unsafe_allow_html=True)
-                            st.markdown("<div style='font-size:.75rem;color:#8B949E;margin-bottom:.3rem'>Alterar status:</div>",unsafe_allow_html=True)
-                            status_cors={"Pendente":"#D2991E","Aprovado":"#58A6FF","Comprado":"#A371F7","Entregue":"#3FB950","Cancelado":"#F85149"}
+                            st.markdown(f"<div style='font-size:.8rem;font-weight:600;color:#F0F6FC;margin-bottom:.3rem'>{pnome}</div>",unsafe_allow_html=True)
                             cur_st=item.get("status","Pendente")
-                            for sv in ST_ALL:
-                                is_cur = sv==cur_st
-                                lbl = f"✓ {sv}" if is_cur else sv
-                                if st.button(lbl,key=f"st_{sv}_{iid}",use_container_width=True,type="primary" if is_cur else "secondary"):
+                            pa,pb=st.columns(2)
+                            cols_status=[pa,pb,pa,pb,pa]
+                            for idx,sv in enumerate(ST_ALL):
+                                is_cur=sv==cur_st
+                                lbl=f"✓ {sv}" if is_cur else sv
+                                if cols_status[idx].button(lbl,key=f"st_{sv}_{iid}",use_container_width=True,type="primary" if is_cur else "secondary"):
                                     ui(iid,{"status":sv}); st.rerun()
                             st.divider()
-                            if st.button("✏️ Editar campos",key=f"edbtn_{iid}",use_container_width=True): st.session_state[f"ed_{iid}"]=True
-                            if st.button("🗑 Deletar",key=f"del_{iid}",use_container_width=True): di(iid); st.rerun()
+                            pe,pd2=st.columns(2)
+                            if pe.button("Editar",key=f"edbtn_{iid}",use_container_width=True): st.session_state[f"ed_{iid}"]=True
+                            if pd2.button("Deletar",key=f"del_{iid}",use_container_width=True): di(iid); st.rerun()
                     if st.session_state.get(f"ed_{iid}"):
                         st.markdown("---")
                         forns2=gf(); fm3={f["nome"]:f["id"] for f in forns2}; fopts2=["(Nenhum)"]+list(fm3.keys())
