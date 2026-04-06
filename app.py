@@ -226,7 +226,7 @@ def pagina_loja(loja):
     busca=ca.text_input("",placeholder="Buscar produto, marca, SKU...",label_visibility="collapsed",key=f"bsc_{loja}")
     with cb:
         btn1,btn2=st.columns(2)
-        if btn1.button("Criar Produto",use_container_width=True,type="primary",key=f"bcp_{loja}"):
+        if btn1.button("+ Produto",use_container_width=True,type="primary",key=f"bcp_{loja}"):
             st.session_state[f"cp_{loja}"]=not st.session_state.get(f"cp_{loja}",False)
             st.session_state[f"gs_{loja}"]=False
         if btn2.button("Secoes",use_container_width=True,key=f"bgs_{loja}"):
@@ -322,13 +322,13 @@ def pagina_loja(loja):
             b=busca.lower(); itens=[i for i in itens if b in " ".join([i.get("produto",""),i.get("marca",""),i.get("sku",""),i.get("ean","")]).lower()]
         tsec=sum(float(i.get("total") or 0) for i in itens_all); total_loja+=tsec
         npend=sum(1 for i in itens_all if i.get("status")=="Pendente")
-        # Se busca ativa e nenhum item, pula a secao
-        if busca and not itens: continue
+        # Esconde secoes sem itens quando filtros ativos
+        if (busca or fst!="Todos" or fpr!="Todas") and not itens: continue
         exp_key=f"exp_{sec['id']}"
         if exp_key not in st.session_state: st.session_state[exp_key]=True
 
         # CABECALHO DA SECAO — sem botao editar inline
-        hcols=st.columns([5,1])
+        hcols=st.columns([7,1])
         pend_txt=f" &nbsp;·&nbsp; <span style='color:#D2991E'>{npend} pendentes</span>" if npend else ""
         arrow = '▼' if st.session_state[exp_key] else '▶'
         hcols[0].markdown(f"<div class='sec-hdr'><span style='font-size:1rem;font-weight:700;color:#F0F6FC'>{arrow} {sec['nome']}</span><span style='font-size:.8rem;color:#8B949E'> &nbsp;·&nbsp; {len(itens_all)} itens &nbsp;·&nbsp; {brl(tsec)}{pend_txt}</span></div>",unsafe_allow_html=True)
@@ -346,8 +346,13 @@ def pagina_loja(loja):
                     if sel and iid not in sl: st.session_state.setdefault(sel_key,[]).append(iid)
                     elif not sel and iid in sl: st.session_state[sel_key].remove(iid)
                     img=item.get("imagem_url","")
-                    meta=" · ".join(filter(None,[item.get("marca",""),item.get("sku",""),item.get("ean","")]))
+                    parts=[]
+                    if item.get("marca"): parts.append(f"Marca: {item['marca']}")
+                    if item.get("sku"):   parts.append(f"SKU: {item['sku']}")
+                    if item.get("ean"):   parts.append(f"EAN: {item['ean']}")
                     fnome=fmc.get(item.get("fornecedor_id"),"")
+                    if fnome: parts.append(f"Fornecedor: {fnome}")
+                    meta=" · ".join(parts)
                     img_html='<img src="'+img+'" style="width:34px;height:34px;object-fit:cover;border-radius:6px;border:1px solid #30363D">' if img else '<div style="width:34px;height:34px;background:#21262D;border-radius:6px;display:flex;align-items:center;justify-content:center">📦</div>'
                     meta_txt=meta+(" · "+fnome if fnome else "")
                     pnome=item.get("produto","")
