@@ -26,6 +26,9 @@ p,label,div,span{color:#E6EDF3}h1,h2,h3{color:#F0F6FC!important}
 [data-testid="stTabs"] [role="tab"][aria-selected="true"]{color:#58A6FF!important;border-bottom:2px solid #58A6FF!important}
 hr{border-color:#21262D!important}
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:#0D1117}::-webkit-scrollbar-thumb{background:#30363D;border-radius:3px}
+[data-testid="stButton"]>button{font-size:.82rem!important;padding:.3rem .7rem!important}
+[data-testid="stPopover"] button{background:#21262D!important;color:#8B949E!important;border:1px solid #30363D!important;border-radius:6px!important;font-size:.8rem!important;padding:.2rem .5rem!important;min-width:40px!important}
+[data-testid="stPopover"] button:hover{color:#58A6FF!important;border-color:#58A6FF!important}
 .pg-title{font-size:1.5rem;font-weight:800;color:#F0F6FC;margin-bottom:.2rem}
 .pg-sub{font-size:.82rem;color:#8B949E;margin-bottom:1.2rem}
 .kpi-box{background:#161B22;border:1px solid #21262D;border-radius:12px;padding:1rem;text-align:center;border-top:3px solid var(--c,#238636)}
@@ -333,7 +336,8 @@ def pagina_loja(loja):
         # CABECALHO DA SECAO — sem botao editar inline
         hcols=st.columns([5,1])
         pend_txt=f" &nbsp;·&nbsp; <span style='color:#D2991E'>{npend} pendentes</span>" if npend else ""
-        hcols[0].markdown(f"<div class='sec-hdr'><span style='font-size:1rem;font-weight:700;color:#F0F6FC'>{{'▼' if st.session_state[exp_key] else '▶'}} {sec['nome']}</span><span style='font-size:.8rem;color:#8B949E'> &nbsp;·&nbsp; {len(itens_all)} itens &nbsp;·&nbsp; {brl(tsec)}{pend_txt}</span></div>",unsafe_allow_html=True)
+        arrow = '▼' if st.session_state[exp_key] else '▶'
+        hcols[0].markdown(f"<div class='sec-hdr'><span style='font-size:1rem;font-weight:700;color:#F0F6FC'>{arrow} {sec['nome']}</span><span style='font-size:.8rem;color:#8B949E'> &nbsp;·&nbsp; {len(itens_all)} itens &nbsp;·&nbsp; {brl(tsec)}{pend_txt}</span></div>",unsafe_allow_html=True)
         if hcols[1].button("Abrir" if not st.session_state[exp_key] else "Fechar",key=f"tog_{sec['id']}",use_container_width=True):
             st.session_state[exp_key]=not st.session_state[exp_key]; st.rerun()
 
@@ -361,7 +365,7 @@ def pagina_loja(loja):
                     c6.markdown(bdg(item.get("status",""))+" "+dbd(item.get("dt_necessidade")),unsafe_allow_html=True)
                     c7.markdown(bdg(item.get("prioridade","")),unsafe_allow_html=True)
                     with c8:
-                        with st.popover("opcoes"):
+                        with st.popover("•••"):
                             st.markdown(f"**{pnome}**")
                             if img: st.image(img,width=100)
                             nst=st.selectbox("Status",ST_ALL,index=ST_ALL.index(item.get("status","Pendente")),key=f"pst_{iid}")
