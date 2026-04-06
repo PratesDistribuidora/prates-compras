@@ -41,7 +41,7 @@ p,label,div,span{color:#E6EDF3}h1,h2,h3{color:#F0F6FC!important}
 .b-Baixa{background:rgba(63,185,80,.15);color:#3FB950;border:1px solid rgba(63,185,80,.3)}
 .b-urg{background:rgba(248,81,73,.25);color:#F85149;border:1px solid #F85149}
 .i-nome{font-weight:600;color:#F0F6FC;font-size:.92rem}
-.i-meta{font-size:.75rem;color:#8B949E;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:380px}
+.i-meta{font-size:.75rem;color:#8B949E;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:min(500px,55vw)}
 .nav-lbl{font-size:.68rem;color:#6E7681;text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin:.6rem 0 .2rem .2rem}
 .usr-box{background:#0D1117;border:1px solid #21262D;border-radius:8px;padding:.65rem 1rem;margin:.4rem 0}
 .role-tag{display:inline-block;background:#238636;color:#fff;font-size:.62rem;font-weight:700;padding:1px 8px;border-radius:20px;margin-top:3px}
@@ -67,25 +67,25 @@ def login(email,senha):
     r=sb.table("pc_usuarios").select("*").eq("email",email.strip().lower()).eq("ativo",True).execute()
     if not r.data: return None
     u=r.data[0]; return u if u["senha_hash"]==hp(senha) else None
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=60)
 def gf(): return sb.table("pc_fornecedores").select("*").eq("ativo",True).order("nome").execute().data or []
 def cf(d): sb.table("pc_fornecedores").insert(d).execute(); st.cache_data.clear()
 def ef(fid,d): sb.table("pc_fornecedores").update(d).eq("id",fid).execute(); st.cache_data.clear()
 def df2(fid): sb.table("pc_fornecedores").update({"ativo":False}).eq("id",fid).execute(); st.cache_data.clear()
-@st.cache_data(ttl=15)
+@st.cache_data(ttl=20)
 def gs(loja): return sb.table("pc_secoes").select("*").eq("loja",loja).eq("ativa",True).order("ordem").execute().data or []
 def cs(loja,nome):
     ss=gs(loja); o=(max(s["ordem"] for s in ss)+1) if ss else 1
     sb.table("pc_secoes").insert({"loja":loja,"nome":nome,"ordem":o,"ativa":True}).execute(); st.cache_data.clear()
 def es(sid,nome): sb.table("pc_secoes").update({"nome":nome}).eq("id",sid).execute(); st.cache_data.clear()
 def as2(sid): sb.table("pc_secoes").update({"ativa":False}).eq("id",sid).execute(); st.cache_data.clear()
-@st.cache_data(ttl=15)
+@st.cache_data(ttl=20)
 def gi(sid,sf_key=None):
     sf=list(sf_key) if sf_key else None
     q=sb.table("pc_itens").select("*").eq("secao_id",sid)
     if sf: q=q.in_("status",sf)
     return q.order("criado_em").execute().data or []
-@st.cache_data(ttl=15)
+@st.cache_data(ttl=20)
 def ga(sf_key=None):
     sf=list(sf_key) if sf_key else None
     q=sb.table("pc_itens").select("*, pc_secoes(nome,loja)")
@@ -381,7 +381,7 @@ def pagina_loja(loja):
                               if st.button("Deletar",key=f"del_{iid}",use_container_width=True): di(iid); st.rerun()
                     if st.session_state.get(f"ed_{iid}"):
                         st.markdown("---")
-                        forns2=gf(); fm3={f["nome"]:f["id"] for f in forns2}; fopts2=["(Nenhum)"]+list(fm3.keys())
+                        forns2=gf(); fm3={f["nome"]:f["id"] for f in forns2}; fopts2=["(Nenhum)"]+list(fm3.keys())  # cached
                         fat="(Nenhum)"
                         if item.get("fornecedor_id"):
                             for f in forns2:
@@ -408,7 +408,7 @@ def pagina_loja(loja):
                                 st.session_state[f"ed_{iid}"]=False; st.rerun()
                             if es2.form_submit_button("Cancelar"): st.session_state[f"ed_{iid}"]=False; st.rerun()
             else:
-                st.markdown("<div style='color:#8B949E;padding:.5rem 0'>Nenhum item nesta secao. Clique em <b>Criar Produto</b> no topo.</div>",unsafe_allow_html=True)
+                st.markdown("<div style='color:#8B949E;padding:.3rem 0;font-size:.8rem'>Sem itens nesta seção.</div>",unsafe_allow_html=True)
             st.markdown("</div>",unsafe_allow_html=True)
 
     st.markdown(f"<div class='total-bar'><span style='color:#8B949E'>{info['nome']} — Total em aberto:</span> <span style='color:{cor};font-size:1.2rem;font-weight:700;margin-left:.8rem'>{brl(total_loja)}</span></div>",unsafe_allow_html=True)
