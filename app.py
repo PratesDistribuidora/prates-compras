@@ -17,10 +17,17 @@ p,label,div,span{color:#E6EDF3}h1,h2,h3{color:#F0F6FC!important}
 [data-testid="stNumberInput"] input{background:#161B22!important;color:#E6EDF3!important;border:1px solid #30363D!important;border-radius:8px!important}
 [data-testid="stSelectbox"]>div>div{background:#161B22!important;color:#E6EDF3!important;border:1px solid #30363D!important;border-radius:8px!important}
 [data-testid="stTextArea"] textarea{background:#161B22!important;color:#E6EDF3!important;border:1px solid #30363D!important}
-[data-testid="stButton"]>button{background:#21262D!important;color:#E6EDF3!important;border:1px solid #30363D!important;border-radius:8px!important;font-weight:500!important}
+[data-testid="stButton"]>button{background:#21262D!important;color:#E6EDF3!important;border:1px solid #30363D!important;border-radius:6px!important;font-weight:500!important;font-size:.8rem!important;padding:.3rem .7rem!important;line-height:1.2!important}
 [data-testid="stButton"]>button:hover{background:#30363D!important;border-color:#58A6FF!important;color:#58A6FF!important}
 [data-testid="stButton"]>button[kind="primary"]{background:#238636!important;color:#fff!important;border-color:#2EA043!important}
 [data-testid="stButton"]>button[kind="primary"]:hover{background:#2EA043!important}
+[data-testid="stPopover"] button{background:#1C2128!important;color:#8B949E!important;border:1px solid #30363D!important;border-radius:6px!important;font-size:.75rem!important;padding:.15rem .4rem!important;min-height:24px!important;line-height:1!important}
+[data-testid="stPopover"] button:hover{color:#58A6FF!important;border-color:#58A6FF!important}
+[data-testid="stNumberInput"] button{padding:.1rem .3rem!important;min-height:20px!important}
+.stSelectbox label,.stTextInput label,.stNumberInput label,.stTextArea label{font-size:.78rem!important;color:#8B949E!important;margin-bottom:.1rem!important}
+[data-testid="stTextInput"] input{padding:.3rem .6rem!important;font-size:.85rem!important}
+[data-testid="stSelectbox"]>div>div{padding:.3rem .6rem!important;font-size:.85rem!important}
+[data-testid="stNumberInput"] input{padding:.3rem .6rem!important;font-size:.85rem!important}
 [data-testid="stForm"]{background:#161B22!important;border:1px solid #30363D!important;border-radius:10px!important;padding:1rem!important}
 [data-testid="stTabs"] [role="tab"]{color:#8B949E!important}
 [data-testid="stTabs"] [role="tab"][aria-selected="true"]{color:#58A6FF!important;border-bottom:2px solid #58A6FF!important}
@@ -73,29 +80,35 @@ def login(email,senha):
     r=sb.table("pc_usuarios").select("*").eq("email",email.strip().lower()).eq("ativo",True).execute()
     if not r.data: return None
     u=r.data[0]; return u if u["senha_hash"]==hp(senha) else None
+@st.cache_data(ttl=30)
 def gf(): return sb.table("pc_fornecedores").select("*").eq("ativo",True).order("nome").execute().data or []
-def cf(d): sb.table("pc_fornecedores").insert(d).execute()
-def ef(fid,d): sb.table("pc_fornecedores").update(d).eq("id",fid).execute()
-def df2(fid): sb.table("pc_fornecedores").update({"ativo":False}).eq("id",fid).execute()
+def cf(d): sb.table("pc_fornecedores").insert(d).execute(); st.cache_data.clear()
+def ef(fid,d): sb.table("pc_fornecedores").update(d).eq("id",fid).execute(); st.cache_data.clear()
+def df2(fid): sb.table("pc_fornecedores").update({"ativo":False}).eq("id",fid).execute(); st.cache_data.clear()
+@st.cache_data(ttl=15)
 def gs(loja): return sb.table("pc_secoes").select("*").eq("loja",loja).eq("ativa",True).order("ordem").execute().data or []
 def cs(loja,nome):
     ss=gs(loja); o=(max(s["ordem"] for s in ss)+1) if ss else 1
-    sb.table("pc_secoes").insert({"loja":loja,"nome":nome,"ordem":o,"ativa":True}).execute()
-def es(sid,nome): sb.table("pc_secoes").update({"nome":nome}).eq("id",sid).execute()
-def as2(sid): sb.table("pc_secoes").update({"ativa":False}).eq("id",sid).execute()
-def gi(sid,sf=None):
+    sb.table("pc_secoes").insert({"loja":loja,"nome":nome,"ordem":o,"ativa":True}).execute(); st.cache_data.clear()
+def es(sid,nome): sb.table("pc_secoes").update({"nome":nome}).eq("id",sid).execute(); st.cache_data.clear()
+def as2(sid): sb.table("pc_secoes").update({"ativa":False}).eq("id",sid).execute(); st.cache_data.clear()
+@st.cache_data(ttl=15)
+def gi(sid,sf_key=None):
+    sf=list(sf_key) if sf_key else None
     q=sb.table("pc_itens").select("*").eq("secao_id",sid)
     if sf: q=q.in_("status",sf)
     return q.order("criado_em").execute().data or []
-def ga(sf=None):
+@st.cache_data(ttl=15)
+def ga(sf_key=None):
+    sf=list(sf_key) if sf_key else None
     q=sb.table("pc_itens").select("*, pc_secoes(nome,loja)")
     if sf: q=q.in_("status",sf)
     return q.execute().data or []
 def ai(sid,d,user):
     d.update({"secao_id":sid,"criado_por":user,"criado_em":datetime.now().isoformat(),"atualizado_em":datetime.now().isoformat()})
-    sb.table("pc_itens").insert(d).execute()
-def ui(iid,d): d["atualizado_em"]=datetime.now().isoformat(); sb.table("pc_itens").update(d).eq("id",iid).execute()
-def di(iid): sb.table("pc_itens").delete().eq("id",iid).execute()
+    sb.table("pc_itens").insert(d).execute(); st.cache_data.clear()
+def ui(iid,d): d["atualizado_em"]=datetime.now().isoformat(); sb.table("pc_itens").update(d).eq("id",iid).execute(); st.cache_data.clear()
+def di(iid): sb.table("pc_itens").delete().eq("id",iid).execute(); st.cache_data.clear()
 def ls(ids,sv):
     for iid in ids: sb.table("pc_itens").update({"status":sv,"atualizado_em":datetime.now().isoformat()}).eq("id",iid).execute()
 def gu(): return sb.table("pc_usuarios").select("id,nome,email,acesso,ativo").order("nome").execute().data or []
@@ -162,7 +175,7 @@ with st.sidebar:
 def pagina_dashboard():
     st.markdown("<div class='pg-title'>📊 Dashboard</div>",unsafe_allow_html=True)
     st.markdown(f"<div class='pg-sub'>{datetime.now().strftime('%d/%m/%Y %H:%M')}</div>",unsafe_allow_html=True)
-    todos=ga()
+    todos=ga(sf_key=None)
     if not todos: st.info("Nenhum item lancado ainda."); return
     df=pd.DataFrame(todos)
     df["loja"]=df["pc_secoes"].apply(lambda x:x["loja"] if x else "")
@@ -220,7 +233,7 @@ def pagina_dashboard():
 def pagina_loja(loja):
     info=LOJAS[loja]; cor=info["cor"]; fmc=fm()
     st.markdown(f"<div class='pg-title'>{info['icone']} {info['nome']}</div>",unsafe_allow_html=True)
-    st.markdown("<div class='pg-sub'>Lista ativa (Pendente/Aprovado). Comprado e Entregue vao para o Historico.</div>",unsafe_allow_html=True)
+    st.markdown("<div class='pg-sub'>Pendente/Aprovado = lista ativa · Comprado/Entregue = Historico</div>",unsafe_allow_html=True)
     st.markdown(f"<div class='flow'><span class='fstep' style='background:rgba(210,153,34,.15);color:#D2991E'>Pendente</span><span class='farr'>→</span><span class='fstep' style='background:rgba(88,166,255,.15);color:#58A6FF'>Aprovado</span><span class='farr'>→</span><span class='fstep' style='background:rgba(163,113,247,.2);color:#A371F7'>Comprado → Historico</span><span class='farr'>→</span><span class='fstep' style='background:rgba(63,185,80,.2);color:#3FB950'>Entregue → Historico</span></div>",unsafe_allow_html=True)
 
     # BARRA PRINCIPAL
@@ -237,8 +250,8 @@ def pagina_loja(loja):
 
     # PAINEL GERENCIAR SECOES
     if st.session_state.get(f"gs_{loja}"):
-        st.markdown("<div style='background:#161B22;border:2px solid #58A6FF;border-radius:12px;padding:1.4rem;margin-bottom:1rem'>",unsafe_allow_html=True)
-        st.markdown("<div style='font-size:1.1rem;font-weight:700;color:#F0F6FC;margin-bottom:1rem'>Gerenciar Secoes</div>",unsafe_allow_html=True)
+        st.markdown("<div style='background:#161B22;border:1px solid #58A6FF;border-radius:10px;padding:.9rem 1.1rem;margin-bottom:.8rem'>",unsafe_allow_html=True)
+        st.markdown("<div style='font-size:.9rem;font-weight:700;color:#58A6FF;margin-bottom:.6rem'>Gerenciar Secoes</div>",unsafe_allow_html=True)
         secoes_g=gs(loja)
         # Criar nova secao
         st.markdown("**Criar nova secao**")
@@ -272,8 +285,8 @@ def pagina_loja(loja):
         if not secoes_disp:
             st.warning("Crie uma secao primeiro para poder adicionar produtos.")
         else:
-            st.markdown("<div style='background:#161B22;border:2px solid #238636;border-radius:12px;padding:1.4rem;margin-bottom:1rem'>",unsafe_allow_html=True)
-            st.markdown("<div style='font-size:1.1rem;font-weight:700;color:#F0F6FC;margin-bottom:1rem'>Novo Produto</div>",unsafe_allow_html=True)
+            st.markdown("<div style='border-top:2px solid #238636;padding-top:.8rem;margin-bottom:.8rem'>",unsafe_allow_html=True)
+            st.markdown("<div style='font-size:.9rem;font-weight:700;color:#3FB950;margin-bottom:.6rem'>Novo Produto</div>",unsafe_allow_html=True)
             forns=gf(); fm2={f["nome"]:f["id"] for f in forns}; fopts=["(Nenhum)"]+list(fm2.keys())
             sec_opts={s["nome"]:s["id"] for s in secoes_disp}
             with st.form(f"fcp_{loja}"):
@@ -294,7 +307,7 @@ def pagina_loja(loja):
                 preco_cp=q3.number_input("Preco Unit.",min_value=0.0,step=0.01,format="%.2f")
                 prio_cp=q4.selectbox("Prioridade",PRIO,index=1)
                 dt_cp=q5.date_input("Dt Necessidade",value=None)
-                obs_cp=st.text_area("Obs",height=55)
+                obs_cp=st.text_area("Obs",height=45)
                 b1,b2=st.columns(2)
                 if b1.form_submit_button("Adicionar Produto",type="primary"):
                     if prod_cp.strip():
@@ -322,7 +335,7 @@ def pagina_loja(loja):
 
     total_loja=0
     for sec in secoes:
-        itens_all=gi(sec["id"],sf=ST_AT)
+        itens_all=gi(sec["id"],sf_key=tuple(ST_AT))
         itens=itens_all[:]
         if fst!="Todos": itens=[i for i in itens if i.get("status")==fst]
         if fpr!="Todas": itens=[i for i in itens if i.get("prioridade")==fpr]
@@ -411,7 +424,7 @@ def pagina_loja(loja):
 def pagina_historico():
     st.markdown("<div class='pg-title'>📅 Historico</div>",unsafe_allow_html=True)
     st.markdown("<div class='pg-sub'>Itens Comprado, Entregue ou Cancelado</div>",unsafe_allow_html=True)
-    todos=ga(sf=ST_HI)
+    todos=ga(sf_key=tuple(ST_HI))
     if not todos: st.info("Nenhum item no historico ainda."); return
     df=pd.DataFrame(todos)
     df["loja"]=df["pc_secoes"].apply(lambda x:x["loja"] if x else "")
@@ -492,7 +505,7 @@ def pagina_exportar():
                 c.font=Font(bold=True,size=11,color="FFFFFF"); c.fill=PatternFill("solid",start_color="161B22")
                 c.alignment=Alignment(horizontal="left"); ws.row_dimensions[row].height=20; row+=1; tl=0
                 for sec in secoes:
-                    for ri,item in enumerate(gi(sec["id"],sf=sf)):
+                    for ri,item in enumerate(gi(sec["id"],sf_key=tuple(sf) if sf else None)):
                         zb="0D1117" if ri%2==0 else "161B22"
                         vals=[sec["nome"],item.get("produto",""),item.get("marca",""),item.get("sku",""),item.get("ean",""),fme.get(item.get("fornecedor_id"),""),item.get("qtd",""),item.get("unidade",""),item.get("preco_unit",""),item.get("total",""),item.get("prioridade",""),item.get("status","")]
                         for ci,v in enumerate(vals,1):
