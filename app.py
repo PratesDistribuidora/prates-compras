@@ -12,17 +12,15 @@ st.markdown("""<style>
 section[data-testid="stSidebar"]{background:#010409!important;border-right:1px solid #21262D!important}
 section[data-testid="stSidebar"] *{color:#E6EDF3!important}
 section[data-testid="stSidebar"] hr{border-color:#21262D!important}
-p,label,div,span{color:#E6EDF3}
-h1,h2,h3{color:#F0F6FC!important}
-[data-testid="stTextInput"] input,[data-testid="stNumberInput"] input{background:#161B22!important;color:#E6EDF3!important;border:1px solid #30363D!important;border-radius:8px!important}
+p,label,div,span{color:#E6EDF3}h1,h2,h3{color:#F0F6FC!important}
+[data-testid="stTextInput"] input{background:#161B22!important;color:#E6EDF3!important;border:1px solid #30363D!important;border-radius:8px!important}
+[data-testid="stNumberInput"] input{background:#161B22!important;color:#E6EDF3!important;border:1px solid #30363D!important;border-radius:8px!important}
 [data-testid="stSelectbox"]>div>div{background:#161B22!important;color:#E6EDF3!important;border:1px solid #30363D!important;border-radius:8px!important}
 [data-testid="stTextArea"] textarea{background:#161B22!important;color:#E6EDF3!important;border:1px solid #30363D!important}
 [data-testid="stButton"]>button{background:#21262D!important;color:#E6EDF3!important;border:1px solid #30363D!important;border-radius:8px!important;font-weight:500!important}
 [data-testid="stButton"]>button:hover{background:#30363D!important;border-color:#58A6FF!important;color:#58A6FF!important}
 [data-testid="stButton"]>button[kind="primary"]{background:#238636!important;color:#fff!important;border-color:#2EA043!important}
-[data-testid="stExpander"]{background:#161B22!important;border:1px solid #30363D!important;border-radius:10px!important;margin-bottom:8px!important}
-[data-testid="stExpander"] summary{background:#161B22!important}
-[data-testid="stExpander"] summary p{color:#F0F6FC!important;font-weight:600!important}
+[data-testid="stButton"]>button[kind="primary"]:hover{background:#2EA043!important}
 [data-testid="stForm"]{background:#161B22!important;border:1px solid #30363D!important;border-radius:10px!important;padding:1rem!important}
 [data-testid="stTabs"] [role="tab"]{color:#8B949E!important}
 [data-testid="stTabs"] [role="tab"][aria-selected="true"]{color:#58A6FF!important;border-bottom:2px solid #58A6FF!important}
@@ -52,6 +50,10 @@ hr{border-color:#21262D!important}
 .fstep{font-size:.78rem;font-weight:600;padding:.25rem .7rem;border-radius:6px}
 .farr{color:#30363D}
 .total-bar{background:#161B22;border:1px solid #21262D;border-radius:10px;padding:.9rem 1.4rem;margin-top:1rem;text-align:right}
+.sec-header{background:#161B22;border:1px solid #30363D;border-radius:10px;padding:.9rem 1.2rem;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.sec-title{font-size:1rem;font-weight:700;color:#F0F6FC}
+.sec-meta{font-size:.8rem;color:#8B949E}
+.sec-body{background:#0D1117;border:1px solid #21262D;border-radius:10px;padding:1rem;margin-bottom:1rem}
 </style>""", unsafe_allow_html=True)
 
 @st.cache_resource
@@ -59,11 +61,11 @@ def get_sb(): return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPAB
 sb = get_sb()
 
 LOJAS = {"distribuidora":{"nome":"Prates Distribuidora","cor":"#58A6FF","icone":"📦"},"sublimacao":{"nome":"Prates Sublimacao","cor":"#3FB950","icone":"🎨"}}
-UNID = ["UN","CX","PCT","KG","MT","LT","RL","PAR"]
-PRIO = ["Alta","Media","Baixa"]
-ST_ALL = ["Pendente","Aprovado","Comprado","Entregue","Cancelado"]
-ST_AT  = ["Pendente","Aprovado"]
-ST_HI  = ["Comprado","Entregue","Cancelado"]
+UNID=["UN","CX","PCT","KG","MT","LT","RL","PAR"]
+PRIO=["Alta","Media","Baixa"]
+ST_ALL=["Pendente","Aprovado","Comprado","Entregue","Cancelado"]
+ST_AT=["Pendente","Aprovado"]
+ST_HI=["Comprado","Entregue","Cancelado"]
 
 def hp(p): return hashlib.sha256(p.encode()).hexdigest()
 def login(email,senha):
@@ -110,7 +112,7 @@ def dbd(dt_str):
     if not dt_str: return ""
     try:
         d=(date.fromisoformat(str(dt_str))-date.today()).days
-        if d<0: return f"<span class='bdg b-urg'>atraso {abs(d)}d</span>"
+        if d<0: return f"<span class='bdg b-urg'>Atraso {abs(d)}d</span>"
         if d==0: return f"<span class='bdg b-urg'>Hoje</span>"
         if d<=3: return f"<span class='bdg b-Alta'>{d}d</span>"
         if d<=7: return f"<span class='bdg b-Media'>{d}d</span>"
@@ -179,7 +181,7 @@ def pagina_dashboard():
                 if d<=3: urg.append((d,r))
             except: pass
         if urg:
-            st.markdown(f"### ⚠️ {len(urg)} item(ns) com prazo critico")
+            st.markdown(f"### ⚠️ {len(urg)} item(ns) urgente(s)")
             for d,r in sorted(urg):
                 st.markdown(f"<div style='background:#161B22;border:1px solid #21262D;border-radius:8px;padding:.6rem 1rem;margin-bottom:.3rem'><b style='color:#F0F6FC'>{r['produto']}</b> · <span style='color:#8B949E'>{r['secao_nome']}</span> {dbd(r['dt_necessidade'])}</div>",unsafe_allow_html=True)
             st.divider()
@@ -248,18 +250,21 @@ def pagina_loja(loja):
     st.markdown(f"<div class='pg-title'>{info['icone']} {info['nome']}</div>",unsafe_allow_html=True)
     st.markdown("<div class='pg-sub'>Lista ativa (Pendente/Aprovado). Comprado e Entregue vao para o Historico.</div>",unsafe_allow_html=True)
     st.markdown(f"<div class='flow'><span class='fstep' style='background:rgba(210,153,34,.15);color:#D2991E'>Pendente</span><span class='farr'>→</span><span class='fstep' style='background:rgba(88,166,255,.15);color:#58A6FF'>Aprovado</span><span class='farr'>→</span><span class='fstep' style='background:rgba(163,113,247,.2);color:#A371F7'>Comprado → Historico</span><span class='farr'>→</span><span class='fstep' style='background:rgba(63,185,80,.2);color:#3FB950'>Entregue → Historico</span></div>",unsafe_allow_html=True)
+
     ca,cb,cc,cd=st.columns([3,1,1,1])
     busca=ca.text_input("",placeholder="Buscar produto, marca, SKU...",label_visibility="collapsed",key=f"bsc_{loja}")
     fst=cb.selectbox("",["Todos"]+ST_AT,key=f"fst_{loja}",label_visibility="collapsed")
     fpr=cc.selectbox("",["Todas"]+PRIO,key=f"fpr_{loja}",label_visibility="collapsed")
     if cd.button("+ Nova Secao",use_container_width=True,key=f"bns_{loja}"): st.session_state[f"ns_{loja}"]=True
+
     if st.session_state.get(f"ns_{loja}"):
         with st.form(f"fns_{loja}"):
-            st.markdown("**Nova Secao**"); nomes=st.text_input("Nome")
+            st.markdown("**Nova Secao**"); nomes=st.text_input("Nome da nova secao")
             x1,x2=st.columns(2)
             if x1.form_submit_button("Criar",type="primary"):
                 if nomes.strip(): cs(loja,nomes.strip()); st.session_state[f"ns_{loja}"]=False; st.rerun()
             if x2.form_submit_button("Cancelar"): st.session_state[f"ns_{loja}"]=False; st.rerun()
+
     sel_key=f"sel_{loja}"
     if sel_key not in st.session_state: st.session_state[sel_key]=[]
     marcados=st.session_state[sel_key]
@@ -269,8 +274,11 @@ def pagina_loja(loja):
         for col,lbl,sv,tp in [(la,"Aprovar","Aprovado","primary"),(lb,"Comprado","Comprado","secondary"),(lc,"Entregue","Entregue","secondary"),(ld,"Cancelar","Cancelado","secondary")]:
             if col.button(lbl,key=f"lote_{sv}_{loja}",use_container_width=True,type=tp): ls(marcados,sv); st.session_state[sel_key]=[]; st.rerun()
         if le.button("Limpar",key=f"clr_{loja}",use_container_width=True): st.session_state[sel_key]=[]; st.rerun()
+
     secoes=gs(loja)
-    if not secoes: st.markdown("<div style='text-align:center;padding:3rem;background:#161B22;border:1px dashed #30363D;border-radius:12px;color:#8B949E'>Nenhuma secao. Clique em <b>+ Nova Secao</b>.</div>",unsafe_allow_html=True); return
+    if not secoes:
+        st.markdown("<div style='text-align:center;padding:3rem;background:#161B22;border:1px dashed #30363D;border-radius:12px;color:#8B949E'>Nenhuma secao. Clique em <b>+ Nova Secao</b>.</div>",unsafe_allow_html=True); return
+
     total_loja=0
     for sec in secoes:
         itens_all=gi(sec["id"],sf=ST_AT)
@@ -281,46 +289,73 @@ def pagina_loja(loja):
             b=busca.lower(); itens=[i for i in itens if b in " ".join([i.get("produto",""),i.get("marca",""),i.get("sku",""),i.get("ean","")]).lower()]
         tsec=sum(float(i.get("total") or 0) for i in itens_all); total_loja+=tsec
         npend=sum(1 for i in itens_all if i.get("status")=="Pendente")
-        with st.expander(f"{sec['nome']}  —  {len(itens_all)} itens  —  {brl(tsec)}"+(f"  —  {npend} pendentes" if npend else ""),expanded=True):
-            sc1,sc2,sc3=st.columns([4,1.5,1])
-            nn=sc1.text_input("",value=sec["nome"],key=f"rn_{sec['id']}",label_visibility="collapsed")
-            if sc2.button("Salvar nome",key=f"svn_{sec['id']}",use_container_width=True):
-                if nn.strip() and nn!=sec["nome"]: es(sec["id"],nn.strip()); st.rerun()
-            if sc3.button("Arquivar",key=f"arc_{sec['id']}",use_container_width=True): as2(sec["id"]); st.rerun()
-            st.divider()
-            if itens:
-                for item in itens:
-                    iid=item["id"]; sl=st.session_state.get(sel_key,[])
-                    c0,c1,c2,c3,c4,c5,c6,c7,c8=st.columns([.4,3.5,1.5,.8,.8,1.5,1.2,1.2,.8])
-                    sel=c0.checkbox("",value=iid in sl,key=f"chk_{iid}",label_visibility="collapsed")
-                    if sel and iid not in sl: st.session_state.setdefault(sel_key,[]).append(iid)
-                    elif not sel and iid in sl: st.session_state[sel_key].remove(iid)
-                    img=item.get("imagem_url",""); meta=" · ".join(filter(None,[item.get("marca",""),item.get("sku",""),item.get("ean","")])); fnome=fmc.get(item.get("fornecedor_id"),"")
-                    c1.markdown(f"<div style='display:flex;align-items:center;gap:.6rem'>{'<img src=\"'+img+'\" style=\"width:34px;height:34px;object-fit:cover;border-radius:6px;border:1px solid #30363D\">' if img else '<div style=\"width:34px;height:34px;background:#21262D;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.8rem\">📦</div>'}<div><div class=\"i-nome\">{item.get(\"produto\",\"\")}</div><div class=\"i-meta\">{meta}{\" · \"+fnome if fnome else \"\"}</div></div></div>",unsafe_allow_html=True)
-                    c2.markdown(f"<div style='font-size:.78rem;color:#8B949E;padding-top:.3rem'>{sec['nome']}</div>",unsafe_allow_html=True)
-                    c3.markdown(f"<div style='text-align:center;padding-top:.3rem'>{item.get('qtd','')} {item.get('unidade','')}</div>",unsafe_allow_html=True)
-                    c4.markdown(f"<div style='text-align:right;font-size:.8rem;color:#8B949E;padding-top:.3rem'>{brl(item.get('preco_unit',0))}</div>",unsafe_allow_html=True)
-                    c5.markdown(f"<div style='text-align:right;font-weight:700;color:{cor};padding-top:.3rem'>{brl(item.get('total',0))}</div>",unsafe_allow_html=True)
-                    c6.markdown(bdg(item.get("status",""))+" "+dbd(item.get("dt_necessidade")),unsafe_allow_html=True)
-                    c7.markdown(bdg(item.get("prioridade","")),unsafe_allow_html=True)
-                    with c8:
-                        with st.popover("opcoes"):
-                            st.markdown(f"**{item.get('produto','')}**")
-                            if img: st.image(img,width=100)
-                            nst=st.selectbox("Status",ST_ALL,index=ST_ALL.index(item.get("status","Pendente")),key=f"pst_{iid}")
-                            if st.button("Salvar status",key=f"svst_{iid}",type="primary"): ui(iid,{"status":nst}); st.rerun()
-                            st.divider()
-                            if st.button("Editar",key=f"edbtn_{iid}"): st.session_state[f"ed_{iid}"]=True
-                            if st.button("Deletar",key=f"del_{iid}"): di(iid); st.rerun()
-                    if st.session_state.get(f"ed_{iid}"):
-                        st.markdown("---"); r=form_item(f"fedit_{iid}",item=item)
-                        if r is not None: ui(iid,r); st.session_state[f"ed_{iid}"]=False; st.rerun()
-                        if st.button("Cancelar",key=f"ced_{iid}"): st.session_state[f"ed_{iid}"]=False; st.rerun()
-            else: st.markdown("<div style='color:#8B949E;padding:.5rem 0'>Nenhum item com os filtros selecionados.</div>",unsafe_allow_html=True)
-            st.markdown("---")
-            with st.expander("+ Adicionar item"):
+        exp_key=f"exp_{sec['id']}"
+        if exp_key not in st.session_state: st.session_state[exp_key]=True
+
+        # CABECALHO DA SECAO — sem st.expander
+        hcols=st.columns([6,1])
+        with hcols[0]:
+            st.markdown(f"""<div class='sec-header'>
+                <div>
+                    <span class='sec-title'>{'▼' if st.session_state[exp_key] else '▶'} {sec['nome']}</span>
+                    <span class='sec-meta'> &nbsp;·&nbsp; {len(itens_all)} itens &nbsp;·&nbsp; {brl(tsec)}{' &nbsp;·&nbsp; <span style="color:#D2991E">'+str(npend)+' pendentes</span>' if npend else ''}</span>
+                </div>
+            </div>""",unsafe_allow_html=True)
+        with hcols[1]:
+            lbl="Fechar" if st.session_state[exp_key] else "Abrir"
+            if st.button(lbl,key=f"tog_{sec['id']}",use_container_width=True):
+                st.session_state[exp_key]=not st.session_state[exp_key]; st.rerun()
+
+        if st.session_state[exp_key]:
+            with st.container():
+                st.markdown("<div class='sec-body'>",unsafe_allow_html=True)
+
+                # Editar/arquivar secao
+                sc1,sc2,sc3=st.columns([4,1.5,1])
+                nn=sc1.text_input("",value=sec["nome"],key=f"rn_{sec['id']}",label_visibility="collapsed",placeholder="Renomear secao...")
+                if sc2.button("Salvar nome",key=f"svn_{sec['id']}",use_container_width=True):
+                    if nn.strip() and nn!=sec["nome"]: es(sec["id"],nn.strip()); st.rerun()
+                if sc3.button("Arquivar",key=f"arc_{sec['id']}",use_container_width=True): as2(sec["id"]); st.rerun()
+
+                st.markdown("<hr style='margin:.6rem 0'>",unsafe_allow_html=True)
+
+                if itens:
+                    for item in itens:
+                        iid=item["id"]; sl=st.session_state.get(sel_key,[])
+                        c0,c1,c2,c3,c4,c5,c6,c7,c8=st.columns([.4,3.5,1.5,.8,.8,1.5,1.2,1.2,.8])
+                        sel=c0.checkbox("",value=iid in sl,key=f"chk_{iid}",label_visibility="collapsed")
+                        if sel and iid not in sl: st.session_state.setdefault(sel_key,[]).append(iid)
+                        elif not sel and iid in sl: st.session_state[sel_key].remove(iid)
+                        img=item.get("imagem_url",""); meta=" · ".join(filter(None,[item.get("marca",""),item.get("sku",""),item.get("ean","")])); fnome=fmc.get(item.get("fornecedor_id"),"")
+                        c1.markdown(f"<div style='display:flex;align-items:center;gap:.6rem'>{'<img src=\"'+img+'\" style=\"width:34px;height:34px;object-fit:cover;border-radius:6px;border:1px solid #30363D\">' if img else '<div style=\"width:34px;height:34px;background:#21262D;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.8rem\">📦</div>'}<div><div class=\"i-nome\">{item.get(\"produto\",\"\")}</div><div class=\"i-meta\">{meta}{\" · \"+fnome if fnome else \"\"}</div></div></div>",unsafe_allow_html=True)
+                        c2.markdown(f"<div style='font-size:.78rem;color:#8B949E;padding-top:.3rem'>{sec['nome']}</div>",unsafe_allow_html=True)
+                        c3.markdown(f"<div style='text-align:center;padding-top:.3rem'>{item.get('qtd','')} {item.get('unidade','')}</div>",unsafe_allow_html=True)
+                        c4.markdown(f"<div style='text-align:right;font-size:.8rem;color:#8B949E;padding-top:.3rem'>{brl(item.get('preco_unit',0))}</div>",unsafe_allow_html=True)
+                        c5.markdown(f"<div style='text-align:right;font-weight:700;color:{cor};padding-top:.3rem'>{brl(item.get('total',0))}</div>",unsafe_allow_html=True)
+                        c6.markdown(bdg(item.get("status",""))+" "+dbd(item.get("dt_necessidade")),unsafe_allow_html=True)
+                        c7.markdown(bdg(item.get("prioridade","")),unsafe_allow_html=True)
+                        with c8:
+                            with st.popover("opcoes"):
+                                st.markdown(f"**{item.get('produto','')}**")
+                                if img: st.image(img,width=100)
+                                nst=st.selectbox("Status",ST_ALL,index=ST_ALL.index(item.get("status","Pendente")),key=f"pst_{iid}")
+                                if st.button("Salvar status",key=f"svst_{iid}",type="primary"): ui(iid,{"status":nst}); st.rerun()
+                                st.divider()
+                                if st.button("Editar",key=f"edbtn_{iid}"): st.session_state[f"ed_{iid}"]=True
+                                if st.button("Deletar",key=f"del_{iid}"): di(iid); st.rerun()
+                        if st.session_state.get(f"ed_{iid}"):
+                            st.markdown("---"); r=form_item(f"fedit_{iid}",item=item)
+                            if r is not None: ui(iid,r); st.session_state[f"ed_{iid}"]=False; st.rerun()
+                            if st.button("Cancelar",key=f"ced_{iid}"): st.session_state[f"ed_{iid}"]=False; st.rerun()
+                else:
+                    st.markdown("<div style='color:#8B949E;padding:.5rem 0'>Nenhum item nesta secao.</div>",unsafe_allow_html=True)
+
+                st.markdown("<hr style='margin:.6rem 0'>",unsafe_allow_html=True)
+                st.markdown("**Adicionar item nesta secao**")
                 r=form_item(f"fadd_{sec['id']}")
                 if r is not None: ai(sec["id"],r,u["nome"]); st.rerun()
+                st.markdown("</div>",unsafe_allow_html=True)
+
     st.markdown(f"<div class='total-bar'><span style='color:#8B949E'>{info['nome']} — Total em aberto:</span> <span style='color:{cor};font-size:1.2rem;font-weight:700;margin-left:.8rem'>{brl(total_loja)}</span></div>",unsafe_allow_html=True)
 
 def pagina_historico():
@@ -369,14 +404,16 @@ def pagina_fornecedores():
         bf=st.text_input("","",placeholder="Buscar...",key="bff",label_visibility="collapsed")
         if bf: forns=[f for f in forns if bf.lower() in f["nome"].lower()]
         for forn in forns:
-            with st.expander(f"{forn['nome']}"+(f"  |  {forn.get('telefone','')}" if forn.get("telefone") else "")):
-                with st.form(f"ef_{forn['id']}"):
-                    e1,e2=st.columns(2); en=e1.text_input("Nome",value=forn.get("nome","")); ec=e2.text_input("Contato",value=forn.get("contato",""))
-                    e3,e4,e5=st.columns(3); et=e3.text_input("Telefone",value=forn.get("telefone","")); ee=e4.text_input("Email",value=forn.get("email","")); ecnpj=e5.text_input("CNPJ",value=forn.get("cnpj",""))
-                    eo=st.text_area("Obs",value=forn.get("observacoes",""),height=60)
-                    s1,_,s3=st.columns(3)
-                    if s1.form_submit_button("Salvar",type="primary"): ef(forn["id"],{"nome":en,"contato":ec,"telefone":et,"email":ee,"cnpj":ecnpj,"observacoes":eo}); st.success("Salvo!"); st.rerun()
-                    if s3.form_submit_button("Remover"): df2(forn["id"]); st.rerun()
+            st.markdown(f"<div style='background:#161B22;border:1px solid #30363D;border-radius:10px;padding:1rem;margin-bottom:.6rem'>",unsafe_allow_html=True)
+            st.markdown(f"**{forn['nome']}**" + (f" · {forn.get('telefone','')}" if forn.get("telefone") else "") + (f" · CNPJ: {forn.get('cnpj','')}" if forn.get("cnpj") else ""))
+            with st.form(f"ef_{forn['id']}"):
+                e1,e2=st.columns(2); en=e1.text_input("Nome",value=forn.get("nome","")); ec=e2.text_input("Contato",value=forn.get("contato",""))
+                e3,e4,e5=st.columns(3); et=e3.text_input("Telefone",value=forn.get("telefone","")); ee=e4.text_input("Email",value=forn.get("email","")); ecnpj=e5.text_input("CNPJ",value=forn.get("cnpj",""))
+                eo=st.text_area("Obs",value=forn.get("observacoes",""),height=60)
+                s1,_,s3=st.columns(3)
+                if s1.form_submit_button("Salvar",type="primary"): ef(forn["id"],{"nome":en,"contato":ec,"telefone":et,"email":ee,"cnpj":ecnpj,"observacoes":eo}); st.success("Salvo!"); st.rerun()
+                if s3.form_submit_button("Remover"): df2(forn["id"]); st.rerun()
+            st.markdown("</div>",unsafe_allow_html=True)
 
 def pagina_exportar():
     st.markdown("<div class='pg-title'>📥 Exportar</div>",unsafe_allow_html=True)
@@ -384,7 +421,7 @@ def pagina_exportar():
     with c1:
         le=st.selectbox("Loja",["Ambas","Distribuidora","Sublimacao"])
         lk={"Ambas":"ambas","Distribuidora":"distribuidora","Sublimacao":"sublimacao"}[le]
-        inc=st.checkbox("Incluir Historico")
+        inc=st.checkbox("Incluir Historico (Comprado/Entregue/Cancelado)")
     with c2:
         st.markdown("<br>",unsafe_allow_html=True)
         if st.button("Gerar Excel",use_container_width=True,type="primary"):
@@ -433,19 +470,19 @@ def pagina_admin():
             acesso=c4.selectbox("Acesso",["distribuidora","sublimacao","ambas","admin"])
             if st.form_submit_button("Criar",type="primary"):
                 if nome and email and senha: cu(nome,email,senha,acesso); st.success("Criado!"); st.rerun()
-        st.markdown("#### Usuarios Cadastrados")
+        st.markdown("#### Usuarios")
         for usu in gu():
-            with st.expander(f"{usu['nome']} — {usu['email']} — {'Ativo' if usu['ativo'] else 'Inativo'}"):
-                with st.form(f"eu_{usu['id']}"):
-                    e1,e2=st.columns(2); en=e1.text_input("Nome",value=usu["nome"]); ee=e2.text_input("Email",value=usu["email"])
-                    e3,e4=st.columns(2); ea=e3.selectbox("Acesso",["distribuidora","sublimacao","ambas","admin"],index=["distribuidora","sublimacao","ambas","admin"].index(usu["acesso"]))
-                    ep=e4.text_input("Nova Senha",type="password")
-                    s1,s2=st.columns(2)
-                    if s1.form_submit_button("Salvar",type="primary"):
-                        d={"nome":en,"email":ee,"acesso":ea}
-                        if ep: d["senha_hash"]=hp(ep)
-                        uu2(usu["id"],d); st.success("Salvo!"); st.rerun()
-                    if s2.form_submit_button("Desativar" if usu["ativo"] else "Ativar"): uu2(usu["id"],{"ativo":not usu["ativo"]}); st.rerun()
+            st.markdown(f"<div style='background:#161B22;border:1px solid #30363D;border-radius:8px;padding:.8rem 1rem;margin-bottom:.5rem'><b style='color:#F0F6FC'>{usu['nome']}</b> · {usu['email']} · <span style='color:#8B949E'>{usu['acesso']}</span> · {'✅ Ativo' if usu['ativo'] else '❌ Inativo'}</div>",unsafe_allow_html=True)
+            with st.form(f"eu_{usu['id']}"):
+                e1,e2=st.columns(2); en=e1.text_input("Nome",value=usu["nome"]); ee=e2.text_input("Email",value=usu["email"])
+                e3,e4=st.columns(2); ea=e3.selectbox("Acesso",["distribuidora","sublimacao","ambas","admin"],index=["distribuidora","sublimacao","ambas","admin"].index(usu["acesso"]))
+                ep=e4.text_input("Nova Senha (em branco = manter)",type="password")
+                s1,s2=st.columns(2)
+                if s1.form_submit_button("Salvar",type="primary"):
+                    d={"nome":en,"email":ee,"acesso":ea}
+                    if ep: d["senha_hash"]=hp(ep)
+                    uu2(usu["id"],d); st.success("Salvo!"); st.rerun()
+                if s2.form_submit_button("Desativar" if usu["ativo"] else "Ativar"): uu2(usu["id"],{"ativo":not usu["ativo"]}); st.rerun()
     with tab_s:
         for loja,info in LOJAS.items():
             st.markdown(f"#### {info['icone']} {info['nome']}")
