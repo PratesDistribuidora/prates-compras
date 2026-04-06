@@ -22,7 +22,8 @@ p,label,div,span{color:#E6EDF3}h1,h2,h3{color:#F0F6FC!important}
 [data-testid="stButton"]>button[kind="primary"]{background:#238636!important;color:#fff!important;border-color:#2EA043!important}
 [data-testid="stButton"]>button[kind="primary"]:hover{background:#2EA043!important}
 [data-testid="stPopover"]>div>button{background:#1C2128!important;border:1px solid #30363D!important;border-radius:6px!important;color:#E6EDF3!important}
-[data-testid="stPopoverBody"] [data-testid="stButton"]>button{font-size:.8rem!important}
+[data-testid="stPopoverBody"] [data-testid="stButton"]>button{font-size:.78rem!important;padding:.2rem .5rem!important;line-height:1.2!important}
+[data-testid="stPopoverBody"]{padding:.4rem!important}
 [data-testid="stForm"]{background:#161B22!important;border:1px solid #30363D!important;border-radius:10px!important;padding:1rem!important}
 [data-testid="stTabs"] [role="tab"]{color:#8B949E!important}
 [data-testid="stTabs"] [role="tab"][aria-selected="true"]{color:#58A6FF!important;border-bottom:2px solid #58A6FF!important}
@@ -48,9 +49,7 @@ hr{border-color:#21262D!important}
 .nav-lbl{font-size:.68rem;color:#6E7681;text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin:.6rem 0 .2rem .2rem}
 .usr-box{background:#0D1117;border:1px solid #21262D;border-radius:8px;padding:.65rem 1rem;margin:.4rem 0}
 .role-tag{display:inline-block;background:#238636;color:#fff;font-size:.62rem;font-weight:700;padding:1px 8px;border-radius:20px;margin-top:3px}
-.flow{display:flex;align-items:center;gap:.4rem;padding:.55rem 1rem;background:#161B22;border:1px solid #21262D;border-radius:8px;margin-bottom:1rem;flex-wrap:wrap}
-.fstep{font-size:.78rem;font-weight:600;padding:.25rem .7rem;border-radius:6px}
-.farr{color:#30363D}
+
 .total-bar{background:#161B22;border:1px solid #21262D;border-radius:10px;padding:.9rem 1.4rem;margin-top:1rem;text-align:right}
 .sec-hdr{background:#161B22;border:1px solid #30363D;border-radius:10px;padding:.85rem 1.1rem;margin-bottom:4px}
 .sec-body{background:#0D1117;border:1px solid #21262D;border-radius:10px;padding:1rem;margin-bottom:1rem}
@@ -224,9 +223,9 @@ def pagina_dashboard():
 
 def pagina_loja(loja):
     info=LOJAS[loja]; cor=info["cor"]; fmc=fm()
-    st.markdown(f"<div class='pg-title'>{info['icone']} {info['nome']}</div>",unsafe_allow_html=True)
-    st.markdown("<div class='pg-sub'>Pendente/Aprovado = lista ativa · Comprado/Entregue = Historico</div>",unsafe_allow_html=True)
-    st.markdown(f"<div class='flow'><span class='fstep' style='background:rgba(210,153,34,.15);color:#D2991E'>Pendente</span><span class='farr'>→</span><span class='fstep' style='background:rgba(88,166,255,.15);color:#58A6FF'>Aprovado</span><span class='farr'>→</span><span class='fstep' style='background:rgba(163,113,247,.2);color:#A371F7'>Comprado → Historico</span><span class='farr'>→</span><span class='fstep' style='background:rgba(63,185,80,.2);color:#3FB950'>Entregue → Historico</span></div>",unsafe_allow_html=True)
+    st.markdown(f"<div style='font-size:1.1rem;font-weight:700;color:#F0F6FC;margin-bottom:.1rem'>{info['icone']} {info['nome']}</div>",unsafe_allow_html=True)
+    st.markdown("<div style='font-size:.75rem;color:#8B949E;margin-bottom:.6rem'>Itens Pendente/Aprovado aparecem aqui · Comprado/Entregue vão para o Histórico</div>",unsafe_allow_html=True)
+
 
     # BARRA PRINCIPAL
     ca,cb=st.columns([5,2])
