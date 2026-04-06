@@ -17,11 +17,11 @@ p,label,div,span{color:#E6EDF3}h1,h2,h3{color:#F0F6FC!important}
 [data-testid="stNumberInput"] input{background:#161B22!important;color:#E6EDF3!important;border:1px solid #30363D!important;border-radius:8px!important}
 [data-testid="stSelectbox"]>div>div{background:#161B22!important;color:#E6EDF3!important;border:1px solid #30363D!important;border-radius:8px!important}
 [data-testid="stTextArea"] textarea{background:#161B22!important;color:#E6EDF3!important;border:1px solid #30363D!important}
-[data-testid="stButton"]>button{background:#21262D!important;color:#E6EDF3!important;border:1px solid #30363D!important;border-radius:6px!important;font-weight:500!important;font-size:.82rem!important}
+[data-testid="stButton"]>button{background:#21262D!important;color:#E6EDF3!important;border:1px solid #30363D!important;border-radius:6px!important;font-weight:500!important}
 [data-testid="stButton"]>button:hover{background:#30363D!important;border-color:#58A6FF!important;color:#58A6FF!important}
 [data-testid="stButton"]>button[kind="primary"]{background:#238636!important;color:#fff!important;border-color:#2EA043!important}
 [data-testid="stButton"]>button[kind="primary"]:hover{background:#2EA043!important}
-[data-testid="stPopover"] button{background:#1C2128!important;color:#8B949E!important;border:1px solid #30363D!important;border-radius:6px!important;font-size:.75rem!important;padding:.15rem .4rem!important;min-height:24px!important;line-height:1!important}
+[data-testid="stPopover"] button{background:#1C2128!important;color:#8B949E!important;border:1px solid #30363D!important;border-radius:6px!important}
 [data-testid="stPopover"] button:hover{color:#58A6FF!important;border-color:#58A6FF!important}
 [data-testid="stNumberInput"] button{padding:.1rem .3rem!important;min-height:20px!important}
 .stSelectbox label,.stTextInput label,.stNumberInput label,.stTextArea label{font-size:.78rem!important;color:#8B949E!important;margin-bottom:.1rem!important}
@@ -368,7 +368,7 @@ def pagina_loja(loja):
                     c6.markdown(bdg(item.get("status",""))+" "+dbd(item.get("dt_necessidade")),unsafe_allow_html=True)
                     c7.markdown(bdg(item.get("prioridade","")),unsafe_allow_html=True)
                     with c8:
-                        with st.popover("•••"):
+                        with st.popover("Opções"):
                             st.markdown(f"**{pnome}**")
                             if img: st.image(img,width=100)
                             nst=st.selectbox("Status",ST_ALL,index=ST_ALL.index(item.get("status","Pendente")),key=f"pst_{iid}")
