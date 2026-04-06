@@ -41,7 +41,7 @@ p,label,div,span{color:#E6EDF3}h1,h2,h3{color:#F0F6FC!important}
 .b-Baixa{background:rgba(63,185,80,.15);color:#3FB950;border:1px solid rgba(63,185,80,.3)}
 .b-urg{background:rgba(248,81,73,.25);color:#F85149;border:1px solid #F85149}
 .i-nome{font-weight:600;color:#F0F6FC;font-size:.92rem}
-.i-meta{font-size:.75rem;color:#8B949E;margin-top:2px}
+.i-meta{font-size:.75rem;color:#8B949E;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:380px}
 .nav-lbl{font-size:.68rem;color:#6E7681;text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin:.6rem 0 .2rem .2rem}
 .usr-box{background:#0D1117;border:1px solid #21262D;border-radius:8px;padding:.65rem 1rem;margin:.4rem 0}
 .role-tag{display:inline-block;background:#238636;color:#fff;font-size:.62rem;font-weight:700;padding:1px 8px;border-radius:20px;margin-top:3px}
