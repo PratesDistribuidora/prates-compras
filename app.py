@@ -327,7 +327,9 @@ def pagina_loja(loja):
                         if sel and iid not in sl: st.session_state.setdefault(sel_key,[]).append(iid)
                         elif not sel and iid in sl: st.session_state[sel_key].remove(iid)
                         img=item.get("imagem_url",""); meta=" · ".join(filter(None,[item.get("marca",""),item.get("sku",""),item.get("ean","")])); fnome=fmc.get(item.get("fornecedor_id"),"")
-                        c1.markdown(f"<div style='display:flex;align-items:center;gap:.6rem'>{'<img src=\"'+img+'\" style=\"width:34px;height:34px;object-fit:cover;border-radius:6px;border:1px solid #30363D\">' if img else '<div style=\"width:34px;height:34px;background:#21262D;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.8rem\">📦</div>'}<div><div class=\"i-nome\">{item.get(\"produto\",\"\")}</div><div class=\"i-meta\">{meta}{\" · \"+fnome if fnome else \"\"}</div></div></div>",unsafe_allow_html=True)
+                        img_html='<img src="'+img+'" style="width:34px;height:34px;object-fit:cover;border-radius:6px;border:1px solid #30363D">' if img else '<div style="width:34px;height:34px;background:#21262D;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.8rem">📦</div>'
+                        prod_nome=item.get("produto",""); meta_forn=meta+(" · "+fnome if fnome else "")
+                        c1.markdown(f"<div style='display:flex;align-items:center;gap:.6rem'>{img_html}<div><div class='i-nome'>{prod_nome}</div><div class='i-meta'>{meta_forn}</div></div></div>",unsafe_allow_html=True)
                         c2.markdown(f"<div style='font-size:.78rem;color:#8B949E;padding-top:.3rem'>{sec['nome']}</div>",unsafe_allow_html=True)
                         c3.markdown(f"<div style='text-align:center;padding-top:.3rem'>{item.get('qtd','')} {item.get('unidade','')}</div>",unsafe_allow_html=True)
                         c4.markdown(f"<div style='text-align:right;font-size:.8rem;color:#8B949E;padding-top:.3rem'>{brl(item.get('preco_unit',0))}</div>",unsafe_allow_html=True)
