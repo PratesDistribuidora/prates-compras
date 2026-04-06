@@ -17,18 +17,14 @@ p,label,div,span{color:#E6EDF3}h1,h2,h3{color:#F0F6FC!important}
 [data-testid="stNumberInput"] input{background:#161B22!important;color:#E6EDF3!important;border:1px solid #30363D!important;border-radius:8px!important}
 [data-testid="stSelectbox"]>div>div{background:#161B22!important;color:#E6EDF3!important;border:1px solid #30363D!important;border-radius:8px!important}
 [data-testid="stTextArea"] textarea{background:#161B22!important;color:#E6EDF3!important;border:1px solid #30363D!important}
-[data-testid="stButton"]>button{background:#21262D!important;color:#E6EDF3!important;border:1px solid #30363D!important;border-radius:6px!important;font-weight:500!important;font-size:.85rem!important;height:2.1rem!important;min-height:2.1rem!important;padding:0 .8rem!important;white-space:nowrap!important;overflow:hidden!important}
-[data-testid="stSelectbox"]>div>div{font-size:.85rem!important;min-height:2.1rem!important}
-[data-testid="stTextInput"] input{font-size:.85rem!important;height:2.1rem!important}
-[data-testid="stNumberInput"] input{font-size:.85rem!important;height:2.1rem!important}
-[data-testid="stPopover"]>div>button{font-size:.8rem!important;height:2.1rem!important;padding:0 .7rem!important}
+[data-testid="stButton"]>button{background:#21262D!important;color:#E6EDF3!important;border:1px solid #30363D!important;border-radius:6px!important;font-weight:500!important}
+[data-testid="stPopover"]>div>button{background:#1C2128!important;border:1px solid #30363D!important;border-radius:6px!important;color:#E6EDF3!important}
 [data-testid="stButton"]>button:hover{background:#30363D!important;border-color:#58A6FF!important;color:#58A6FF!important}
 [data-testid="stButton"]>button[kind="primary"]{background:#238636!important;color:#fff!important;border-color:#2EA043!important}
 [data-testid="stButton"]>button[kind="primary"]:hover{background:#2EA043!important}
 [data-testid="stPopover"] button{background:#1C2128!important;color:#8B949E!important;border:1px solid #30363D!important;border-radius:6px!important}
 [data-testid="stPopover"] button:hover{color:#58A6FF!important;border-color:#58A6FF!important}
 [data-testid="stNumberInput"] button{padding:.1rem .3rem!important;min-height:20px!important}
-.stSelectbox label,.stTextInput label,.stNumberInput label,.stTextArea label{font-size:.78rem!important;color:#8B949E!important;margin-bottom:.1rem!important}
 [data-testid="stTextInput"] input{padding:.3rem .6rem!important;font-size:.85rem!important}
 [data-testid="stSelectbox"]>div>div{padding:.3rem .6rem!important;font-size:.85rem!important}
 [data-testid="stNumberInput"] input{padding:.3rem .6rem!important;font-size:.85rem!important}
@@ -241,7 +237,7 @@ def pagina_loja(loja):
     st.markdown(f"<div class='flow'><span class='fstep' style='background:rgba(210,153,34,.15);color:#D2991E'>Pendente</span><span class='farr'>→</span><span class='fstep' style='background:rgba(88,166,255,.15);color:#58A6FF'>Aprovado</span><span class='farr'>→</span><span class='fstep' style='background:rgba(163,113,247,.2);color:#A371F7'>Comprado → Historico</span><span class='farr'>→</span><span class='fstep' style='background:rgba(63,185,80,.2);color:#3FB950'>Entregue → Historico</span></div>",unsafe_allow_html=True)
 
     # BARRA PRINCIPAL
-    ca,cb,cc,cd,ce=st.columns([2.5,1,1,1.2,1.2])
+    ca,cb,cc,cd,ce=st.columns([3,1.4,1.4,1.4,1.4])
     busca=ca.text_input("",placeholder="Buscar produto, marca, SKU...",label_visibility="collapsed",key=f"bsc_{loja}")
     fst=cb.selectbox("",["Todos"]+ST_AT,key=f"fst_{loja}",label_visibility="collapsed")
     fpr=cc.selectbox("",["Todas"]+PRIO,key=f"fpr_{loja}",label_visibility="collapsed")
