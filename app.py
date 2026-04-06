@@ -19,6 +19,9 @@ p,label,div,span{color:#E6EDF3}h1,h2,h3{color:#F0F6FC!important}
 [data-testid="stTextArea"] textarea{background:#161B22!important;color:#E6EDF3!important;border:1px solid #30363D!important}
 [data-testid="stButton"]>button{background:#21262D!important;color:#E6EDF3!important;border:1px solid #30363D!important;border-radius:6px!important;font-weight:500!important}
 [data-testid="stPopover"]>div>button{background:#1C2128!important;border:1px solid #30363D!important;border-radius:6px!important;color:#E6EDF3!important}
+[data-testid="stRadio"] label{font-size:.8rem!important;padding:.1rem .4rem!important}
+[data-testid="stRadio"]>div{gap:.3rem!important;flex-wrap:wrap}
+[data-testid="stRadio"] [data-testid="stMarkdownContainer"] p{font-size:.8rem!important}
 [data-testid="stButton"]>button:hover{background:#30363D!important;border-color:#58A6FF!important;color:#58A6FF!important}
 [data-testid="stButton"]>button[kind="primary"]{background:#238636!important;color:#fff!important;border-color:#2EA043!important}
 [data-testid="stButton"]>button[kind="primary"]:hover{background:#2EA043!important}
@@ -237,16 +240,20 @@ def pagina_loja(loja):
     st.markdown(f"<div class='flow'><span class='fstep' style='background:rgba(210,153,34,.15);color:#D2991E'>Pendente</span><span class='farr'>→</span><span class='fstep' style='background:rgba(88,166,255,.15);color:#58A6FF'>Aprovado</span><span class='farr'>→</span><span class='fstep' style='background:rgba(163,113,247,.2);color:#A371F7'>Comprado → Historico</span><span class='farr'>→</span><span class='fstep' style='background:rgba(63,185,80,.2);color:#3FB950'>Entregue → Historico</span></div>",unsafe_allow_html=True)
 
     # BARRA PRINCIPAL
-    ca,cb,cc,cd,ce=st.columns([3,1.4,1.4,1.4,1.4])
+    ca,cb=st.columns([5,2])
     busca=ca.text_input("",placeholder="Buscar produto, marca, SKU...",label_visibility="collapsed",key=f"bsc_{loja}")
-    fst=cb.selectbox("",["Todos"]+ST_AT,key=f"fst_{loja}",label_visibility="collapsed")
-    fpr=cc.selectbox("",["Todas"]+PRIO,key=f"fpr_{loja}",label_visibility="collapsed")
-    if cd.button("Criar Produto",use_container_width=True,type="primary",key=f"bcp_{loja}"):
-        st.session_state[f"cp_{loja}"]=not st.session_state.get(f"cp_{loja}",False)
-        st.session_state[f"gs_{loja}"]=False
-    if ce.button("Gerenciar Secoes",use_container_width=True,key=f"bgs_{loja}"):
-        st.session_state[f"gs_{loja}"]=not st.session_state.get(f"gs_{loja}",False)
-        st.session_state[f"cp_{loja}"]=False
+    with cb:
+        btn1,btn2=st.columns(2)
+        if btn1.button("Criar Produto",use_container_width=True,type="primary",key=f"bcp_{loja}"):
+            st.session_state[f"cp_{loja}"]=not st.session_state.get(f"cp_{loja}",False)
+            st.session_state[f"gs_{loja}"]=False
+        if btn2.button("Secoes",use_container_width=True,key=f"bgs_{loja}"):
+            st.session_state[f"gs_{loja}"]=not st.session_state.get(f"gs_{loja}",False)
+            st.session_state[f"cp_{loja}"]=False
+
+    ff1,ff2=st.columns(2)
+    fst=ff1.radio("",["Todos"]+ST_AT,horizontal=True,key=f"fst_{loja}",label_visibility="collapsed")
+    fpr=ff2.radio("",["Todas"]+PRIO,horizontal=True,key=f"fpr_{loja}",label_visibility="collapsed")
 
     # PAINEL GERENCIAR SECOES
     if st.session_state.get(f"gs_{loja}"):
