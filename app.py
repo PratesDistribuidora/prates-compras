@@ -20,9 +20,10 @@ p,label,div,span{color:#E6EDF3}h1,h2,h3{color:#F0F6FC!important}
 [data-testid="stButton"]>button{background:#21262D!important;color:#E6EDF3!important;border:1px solid #30363D!important;border-radius:6px!important;font-weight:500!important}
 section[data-testid="stSidebar"] [data-testid="stButton"]>button{font-size:.78rem!important;padding:.25rem .5rem!important;min-height:1.8rem!important}
 [data-testid="stPopover"]>div>button{background:#1C2128!important;border:1px solid #30363D!important;border-radius:6px!important;color:#E6EDF3!important}
-[data-testid="stPopoverBody"] [data-testid="stButton"]>button{font-size:.72rem!important;padding:.15rem .3rem!important;min-height:1.5rem!important;line-height:1.1!important}
-[data-testid="stPopoverBody"] [data-testid="stMarkdownContainer"] p{font-size:.78rem!important}
-[data-testid="stPopoverBody"]{padding:.5rem!important}
+[data-testid="stPopoverBody"] [data-testid="stButton"]>button{font-size:.72rem!important;padding:.1rem .3rem!important;min-height:1.4rem!important;line-height:1!important}
+[data-testid="stPopoverBody"] [data-testid="stMarkdownContainer"] p{font-size:.75rem!important}
+[data-testid="stPopoverBody"]{padding:.4rem .5rem!important;min-width:0!important}
+[data-testid="stPopover"] [data-testid="stPopoverBody"]{width:160px!important;max-width:160px!important}
 [data-testid="stRadio"] label{font-size:.8rem!important;padding:.1rem .4rem!important}
 [data-testid="stRadio"]>div{gap:.3rem!important;flex-wrap:wrap}
 [data-testid="stRadio"] [data-testid="stMarkdownContainer"] p{font-size:.8rem!important}
