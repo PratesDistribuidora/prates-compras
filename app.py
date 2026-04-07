@@ -508,26 +508,28 @@ def pagina_loja(loja):
                             for f in forns2:
                                 if f["id"]==item["fornecedor_id"]: fat=f["nome"]; break
                         with st.form(f"fedit_{iid}"):
-                            st.markdown("**Editar Produto**")
-                            ec1,ec2,ec3=st.columns(3)
-                            ep=ec1.text_input("Produto",value=item.get("produto",""))
-                            em=ec2.text_input("Marca",value=item.get("marca",""))
-                            esk=ec3.text_input("SKU",value=item.get("sku",""))
-                            ec4,ec5,ec6=st.columns(3)
-                            ee=ec4.text_input("EAN",value=item.get("ean",""))
-                            ef2=ec5.selectbox("Fornecedor",fopts2,index=fopts2.index(fat) if fat in fopts2 else 0)
-                            ei=ec6.text_input("URL Imagem",value=item.get("imagem_url",""))
-                            eq1,eq2,eq3,eq4=st.columns(4)
-                            eq=eq1.number_input("Qtd",min_value=0.0,value=float(item.get("qtd",0)),step=1.0)
-                            eun=eq2.selectbox("Unidade",UNID,index=UNID.index(item.get("unidade","UN")) if item.get("unidade","UN") in UNID else 0)
-                            epr=eq3.number_input("Preco",min_value=0.0,value=float(item.get("preco_unit",0)),step=0.01,format="%.2f")
+                            # Linha 1: secao + produto + marca + sku + ean + fornecedor
+                            er1,er2,er3,er4,er5,er6=st.columns([2,2.5,2,1.5,1.5,2])
+                            ep  =er1.text_input("Produto",value=item.get("produto",""))
+                            em  =er2.text_input("Marca",value=item.get("marca",""))
+                            esk =er3.text_input("SKU",value=item.get("sku",""))
+                            ee  =er4.text_input("EAN",value=item.get("ean",""))
+                            ef2 =er5.selectbox("Fornecedor",fopts2,index=fopts2.index(fat) if fat in fopts2 else 0)
+                            ei  =er6.text_input("URL Img",value=item.get("imagem_url","") or "")
+                            # Linha 2: qtd + unidade + preco + prioridade + data + salvar
+                            eq1,eq2,eq3,eq4,eq5,eq6=st.columns([1.2,1.5,1.5,1.5,1.5,1])
+                            eq   =eq1.number_input("Qtd",min_value=0.0,value=float(item.get("qtd",0)),step=1.0)
+                            eun  =eq2.selectbox("Unid",UNID,index=UNID.index(item.get("unidade","UN")) if item.get("unidade","UN") in UNID else 0)
+                            epr  =eq3.number_input("Preco",min_value=0.0,value=float(item.get("preco_unit",0)),step=0.01,format="%.2f")
                             eprio=eq4.selectbox("Prioridade",PRIO,index=PRIO.index(item.get("prioridade","Media")) if item.get("prioridade") in PRIO else 1)
-                            eobs=st.text_area("Obs",value=item.get("obs",""),height=60)
-                            es1,es2=st.columns(2)
-                            if es1.form_submit_button("Salvar",type="primary"):
+                            eobs =eq5.text_input("Obs",value=item.get("obs","") or "")
+                            eq6.markdown("<br>",unsafe_allow_html=True)
+                            saved=eq6.form_submit_button("Salvar",type="primary",use_container_width=True)
+                            if st.form_submit_button("Cancelar",use_container_width=False):
+                                st.session_state[f"ed_{iid}"]=False; st.rerun()
+                            if saved:
                                 ui(iid,{"produto":ep,"marca":em,"sku":esk,"ean":ee,"fornecedor_id":fm3.get(ef2) if ef2!="(Nenhum)" else None,"imagem_url":ei or None,"qtd":eq,"unidade":eun,"preco_unit":epr,"total":round(eq*epr,2),"prioridade":eprio,"obs":eobs})
                                 st.session_state[f"ed_{iid}"]=False; st.rerun()
-                            if es2.form_submit_button("Cancelar"): st.session_state[f"ed_{iid}"]=False; st.rerun()
             else:
                 st.markdown("<div style='color:#8B949E;padding:.3rem 0;font-size:.8rem'>Sem itens nesta seção.</div>",unsafe_allow_html=True)
             st.markdown("</div>",unsafe_allow_html=True)
@@ -593,8 +595,9 @@ def pagina_fornecedores():
                 ee=fd.text_input("Email",value=forn.get("email",""))
                 ecnpj=fe.text_input("CNPJ",value=forn.get("cnpj",""))
                 fg.markdown("<br>",unsafe_allow_html=True)
+                eobs_f=st.text_input("Obs",value=forn.get("observacoes",""),label_visibility="collapsed",placeholder="Obs...")
                 if fg.form_submit_button("💾",use_container_width=True,type="primary"):
-                    ef(forn["id"],{"nome":en,"contato":ec,"telefone":et,"email":ee,"cnpj":ecnpj}); st.rerun()
+                    ef(forn["id"],{"nome":en,"contato":ec,"telefone":et,"email":ee,"cnpj":ecnpj,"observacoes":eobs_f}); st.rerun()
                 fh.markdown("<br>",unsafe_allow_html=True)
                 if fh.form_submit_button("🗑",use_container_width=True):
                     df2(forn["id"]); st.rerun()
