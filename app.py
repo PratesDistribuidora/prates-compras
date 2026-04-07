@@ -569,11 +569,15 @@ def pagina_fornecedores():
     tab_l,tab_n=st.tabs(["Lista","Novo Fornecedor"])
     with tab_n:
         with st.form("fnovoforn"):
-            c1,c2=st.columns(2); fn=c1.text_input("Nome *"); fc=c2.text_input("Contato")
-            c3,c4,c5=st.columns(3); ft=c3.text_input("Telefone"); fe=c4.text_input("Email"); fcnpj=c5.text_input("CNPJ")
-            fo=st.text_area("Obs",height=70)
-            if st.form_submit_button("Cadastrar",type="primary"):
-                if fn.strip(): cf({"nome":fn.strip(),"contato":fc,"telefone":ft,"email":fe,"cnpj":fcnpj,"observacoes":fo,"ativo":True}); st.success("Cadastrado!"); st.rerun()
+            na,nb,nc,nd,ne,nf=st.columns([2.5,2,1.8,2,1.8,1])
+            fn=na.text_input("Nome *")
+            fc=nb.text_input("Contato")
+            ft=nc.text_input("Telefone")
+            fe=nd.text_input("Email")
+            fcnpj=ne.text_input("CNPJ")
+            nf.markdown("<br>",unsafe_allow_html=True)
+            if nf.form_submit_button("+ Adicionar",type="primary",use_container_width=True):
+                if fn.strip(): cf({"nome":fn.strip(),"contato":fc,"telefone":ft,"email":fe,"cnpj":fcnpj,"observacoes":"","ativo":True}); st.success("Cadastrado!"); st.rerun()
                 else: st.warning("Informe o nome.")
     with tab_l:
         forns=gf()
@@ -581,14 +585,19 @@ def pagina_fornecedores():
         bf=st.text_input("","",placeholder="Buscar...",key="bff",label_visibility="collapsed")
         if bf: forns=[f for f in forns if bf.lower() in f["nome"].lower()]
         for forn in forns:
-            st.markdown(f"<div style='background:#161B22;border:1px solid #30363D;border-radius:10px;padding:.8rem 1rem;margin-bottom:.5rem'><b style='color:#F0F6FC'>{forn['nome']}</b>" + (f" &nbsp;·&nbsp; {forn.get('telefone','')}" if forn.get("telefone") else "") + (f" &nbsp;·&nbsp; CNPJ: {forn.get('cnpj','')}" if forn.get("cnpj") else "")+"</div>",unsafe_allow_html=True)
             with st.form(f"ef_{forn['id']}"):
-                e1,e2=st.columns(2); en=e1.text_input("Nome",value=forn.get("nome","")); ec=e2.text_input("Contato",value=forn.get("contato",""))
-                e3,e4,e5=st.columns(3); et=e3.text_input("Telefone",value=forn.get("telefone","")); ee=e4.text_input("Email",value=forn.get("email","")); ecnpj=e5.text_input("CNPJ",value=forn.get("cnpj",""))
-                eo=st.text_area("Obs",value=forn.get("observacoes",""),height=60)
-                s1,_,s3=st.columns(3)
-                if s1.form_submit_button("Salvar",type="primary"): ef(forn["id"],{"nome":en,"contato":ec,"telefone":et,"email":ee,"cnpj":ecnpj,"observacoes":eo}); st.success("Salvo!"); st.rerun()
-                if s3.form_submit_button("Remover"): df2(forn["id"]); st.rerun()
+                fa,fb,fc,fd,fe,fg,fh=st.columns([2.5,1.8,1.8,2,1.8,.7,.7])
+                en=fa.text_input("Nome",value=forn.get("nome",""))
+                ec=fb.text_input("Contato",value=forn.get("contato",""))
+                et=fc.text_input("Telefone",value=forn.get("telefone",""))
+                ee=fd.text_input("Email",value=forn.get("email",""))
+                ecnpj=fe.text_input("CNPJ",value=forn.get("cnpj",""))
+                fg.markdown("<br>",unsafe_allow_html=True)
+                if fg.form_submit_button("💾",use_container_width=True,type="primary"):
+                    ef(forn["id"],{"nome":en,"contato":ec,"telefone":et,"email":ee,"cnpj":ecnpj}); st.rerun()
+                fh.markdown("<br>",unsafe_allow_html=True)
+                if fh.form_submit_button("🗑",use_container_width=True):
+                    df2(forn["id"]); st.rerun()
 
 def pagina_exportar():
     st.markdown("<div class='pg-title'>📥 Exportar</div>",unsafe_allow_html=True)
@@ -640,8 +649,8 @@ def pagina_admin():
     with tab_u:
         st.markdown("#### Novo Usuario")
         with st.form("fnu"):
-            c1,c2=st.columns(2); nome=c1.text_input("Nome"); email=c2.text_input("Email")
-            c3,c4=st.columns(2); senha=c3.text_input("Senha",type="password")
+            c1,c2,c3,c4=st.columns(4)
+            nome=c1.text_input("Nome"); email=c2.text_input("Email"); senha=c3.text_input("Senha",type="password")
             acesso=c4.selectbox("Acesso",["op_dist","op_sub","op_ambas","distribuidora","sublimacao","ambas","admin"],
     format_func=lambda x:{
         "op_dist":"Operador — só Distribuidora",
