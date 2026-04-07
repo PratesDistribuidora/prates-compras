@@ -400,20 +400,21 @@ def pagina_loja(loja):
                 sku_cp=r1d.text_input("SKU")
                 ean_cp=r1e.text_input("EAN")
                 forn_cp=r1f.selectbox("Fornecedor",fopts)
-                r2a,r2b,r2c,r2d,r2e,r2f,r2g=st.columns([1.2,1.5,1.5,1.5,1.5,1.5,1])
+                r2a,r2b,r2c,r2d,r2e,r2f,r2g,r2h=st.columns([1.2,1.5,1.5,1.5,1.5,1.5,1.5,1])
                 qtd_cp=r2a.number_input("Qtd",min_value=0.0,step=1.0)
                 un_cp=r2b.selectbox("Unid",UNID)
                 preco_cp=r2c.number_input("Preco",min_value=0.0,step=0.01,format="%.2f")
                 prio_cp=r2d.selectbox("Prioridade",PRIO,index=1)
                 dt_cp=r2e.date_input("Necessidade",value=None)
                 img_cp=r2f.text_input("URL Img",placeholder="https://...")
-                r2g.markdown("<br>",unsafe_allow_html=True)
-                submitted=r2g.form_submit_button("Salvar",type="primary",use_container_width=True)
+                obs_cp=r2g.text_input("Obs",placeholder="Observacao...")
+                r2h.markdown("<br>",unsafe_allow_html=True)
+                submitted=r2h.form_submit_button("Salvar",type="primary",use_container_width=True)
                 if st.form_submit_button("Cancelar",use_container_width=False):
                     st.session_state[f"cp_{loja}"]=False; st.rerun()
                 if submitted:
                     if prod_cp.strip():
-                        ai(sec_opts[sec_esc],{"produto":prod_cp.strip(),"marca":marca_cp.strip(),"sku":sku_cp.strip(),"ean":ean_cp.strip(),"fornecedor_id":fm2.get(forn_cp) if forn_cp!="(Nenhum)" else None,"imagem_url":img_cp.strip() or None,"qtd":qtd_cp,"unidade":un_cp,"preco_unit":preco_cp,"total":round(qtd_cp*preco_cp,2),"prioridade":prio_cp,"dt_necessidade":str(dt_cp) if dt_cp else None,"obs":"","status":"Pendente"},u["nome"])
+                        ai(sec_opts[sec_esc],{"produto":prod_cp.strip(),"marca":marca_cp.strip(),"sku":sku_cp.strip(),"ean":ean_cp.strip(),"fornecedor_id":fm2.get(forn_cp) if forn_cp!="(Nenhum)" else None,"imagem_url":img_cp.strip() or None,"qtd":qtd_cp,"unidade":un_cp,"preco_unit":preco_cp,"total":round(qtd_cp*preco_cp,2),"prioridade":prio_cp,"dt_necessidade":str(dt_cp) if dt_cp else None,"obs":obs_cp.strip(),"status":"Pendente"},u["nome"])
                         st.session_state[f"cp_{loja}"]=False; st.rerun()
                     else: st.warning("Informe o nome do produto.")
             st.markdown("</div>",unsafe_allow_html=True)
@@ -517,18 +518,23 @@ def pagina_loja(loja):
                             ef2 =er5.selectbox("Fornecedor",fopts2,index=fopts2.index(fat) if fat in fopts2 else 0)
                             ei  =er6.text_input("URL Img",value=item.get("imagem_url","") or "")
                             # Linha 2: qtd + unidade + preco + prioridade + data + salvar
-                            eq1,eq2,eq3,eq4,eq5,eq6=st.columns([1.2,1.5,1.5,1.5,1.5,1])
+                            eq1,eq2,eq3,eq4,eq5,eq6,eq7=st.columns([1.2,1.5,1.5,1.5,1.5,1.5,1])
                             eq   =eq1.number_input("Qtd",min_value=0.0,value=float(item.get("qtd",0)),step=1.0)
                             eun  =eq2.selectbox("Unid",UNID,index=UNID.index(item.get("unidade","UN")) if item.get("unidade","UN") in UNID else 0)
                             epr  =eq3.number_input("Preco",min_value=0.0,value=float(item.get("preco_unit",0)),step=0.01,format="%.2f")
                             eprio=eq4.selectbox("Prioridade",PRIO,index=PRIO.index(item.get("prioridade","Media")) if item.get("prioridade") in PRIO else 1)
-                            eobs =eq5.text_input("Obs",value=item.get("obs","") or "")
-                            eq6.markdown("<br>",unsafe_allow_html=True)
-                            saved=eq6.form_submit_button("Salvar",type="primary",use_container_width=True)
+                            _dt_val=None
+                            try:
+                                if item.get("dt_necessidade"): _dt_val=date.fromisoformat(str(item["dt_necessidade"]))
+                            except: pass
+                            edt  =eq5.date_input("Necessidade",value=_dt_val)
+                            eobs =eq6.text_input("Obs",value=item.get("obs","") or "")
+                            eq7.markdown("<br>",unsafe_allow_html=True)
+                            saved=eq7.form_submit_button("Salvar",type="primary",use_container_width=True)
                             if st.form_submit_button("Cancelar",use_container_width=False):
                                 st.session_state[f"ed_{iid}"]=False; st.rerun()
                             if saved:
-                                ui(iid,{"produto":ep,"marca":em,"sku":esk,"ean":ee,"fornecedor_id":fm3.get(ef2) if ef2!="(Nenhum)" else None,"imagem_url":ei or None,"qtd":eq,"unidade":eun,"preco_unit":epr,"total":round(eq*epr,2),"prioridade":eprio,"obs":eobs})
+                                ui(iid,{"produto":ep,"marca":em,"sku":esk,"ean":ee,"fornecedor_id":fm3.get(ef2) if ef2!="(Nenhum)" else None,"imagem_url":ei or None,"qtd":eq,"unidade":eun,"preco_unit":epr,"total":round(eq*epr,2),"prioridade":eprio,"dt_necessidade":str(edt) if edt else None,"obs":eobs})
                                 st.session_state[f"ed_{iid}"]=False; st.rerun()
             else:
                 st.markdown("<div style='color:#8B949E;padding:.3rem 0;font-size:.8rem'>Sem itens nesta seção.</div>",unsafe_allow_html=True)
