@@ -130,8 +130,35 @@ def dbd(dt_str):
         return f"<span class='bdg b-Baixa'>{d}d</span>"
     except: return ""
 
-for k,v in [("usuario",None),("pagina","dashboard")]:
+for k,v in [("usuario",None),("pagina","dashboard"),("gate_ok",False)]:
     if k not in st.session_state: st.session_state[k]=v
+
+# ── PORTÃO DE ACESSO ──────────────────────────────────────────────────────────
+if not st.session_state.gate_ok:
+    _,gc,_=st.columns([1,1.2,1])
+    with gc:
+        st.markdown("""
+        <div style='text-align:center;padding:80px 0 24px'>
+            <div style='font-size:.85rem;color:#8B949E;letter-spacing:.15em;text-transform:uppercase;margin-bottom:1rem'>Acesso Restrito</div>
+        </div>""",unsafe_allow_html=True)
+        # Show logo
+        try:
+            _logo_b64=st.secrets.get("LOGO_B64","")
+        except: _logo_b64=""
+        st.markdown("<div style='background:#161B22;border:1px solid #30363D;border-radius:12px;padding:1.8rem'>",unsafe_allow_html=True)
+        st.markdown("<div style='font-size:.95rem;font-weight:600;color:#F0F6FC;margin-bottom:.8rem;text-align:center'>🔐 Código de Acesso</div>",unsafe_allow_html=True)
+        with st.form("gate"):
+            codigo=st.text_input("",placeholder="Digite o código",type="password",label_visibility="collapsed")
+            if st.form_submit_button("Confirmar",use_container_width=True,type="primary"):
+                try:
+                    site_code=st.secrets.get("SITE_CODE","")
+                except: site_code=""
+                if codigo.strip()==site_code and site_code!="":
+                    st.session_state.gate_ok=True; st.rerun()
+                else:
+                    st.error("Código incorreto.")
+        st.markdown("</div>",unsafe_allow_html=True)
+    st.stop()
 
 def pagina_login():
     _,c2,_=st.columns([1,1.2,1])
