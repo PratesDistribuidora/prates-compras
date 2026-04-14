@@ -4,6 +4,7 @@ import bcrypt
 import hashlib
 import io
 import logging
+import traceback
 from supabase import create_client
 from datetime import date, datetime
 import plotly.express as px
@@ -24,6 +25,15 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+# Função para mostrar erros amigáveis
+def show_error(error_msg, error_detail=None):
+    """Mostra erro de forma amigável para o usuário"""
+    st.error(f"❌ {error_msg}")
+    if error_detail:
+        with st.expander("Detalhes técnicos"):
+            st.code(error_detail)
+    logger.error(f"{error_msg}: {error_detail}")
 
 # CSS Moderno e Leve
 st.markdown("""
@@ -85,6 +95,19 @@ st.markdown("""
     [data-testid="stPopoverBody"] .stButton>button {font-size: 11px !important; padding: 6px 10px !important; min-height: 0 !important; border-radius: 4px !important}
 </style>
 """, unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CONTROLE DE SESSÃO
+# ─────────────────────────────────────────────────────────────────────────────
+def check_session_timeout():
+    """Verifica se a sessão expirou (30 minutos)"""
+    if 'last_activity' in st.session_state:
+        time_diff = (datetime.now() - st.session_state.last_activity).seconds
+        if time_diff > 1800:  # 30 minutos
+            st.session_state.clear()
+            st.warning("Sessão expirada. Faça login novamente.")
+            st.rerun()
+    st.session_state.last_activity = datetime.now()
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CONSTANTS
@@ -168,9 +191,15 @@ def delete_secao(sid: int) -> bool:
 def get_itens_secao(sid: int, status_filter: Optional[List[str]] = None) -> List[dict]:
     try:
         q = sb.table("pc_itens").select("*").eq("secao_id", sid)
-        if status_filter: q = q.in_("status", status_filter)
+        if status_filter:
+            # Converte para lista se for tuple
+            filter_list = list(status_filter) if isinstance(status_filter, tuple) else status_filter
+            if filter_list:
+                q = q.in_("status", filter_list)
         return q.order("criado_em").execute().data or []
-    except Exception as e: logger.error(f"Erro itens: {e}"); return []
+    except Exception as e:
+        logger.error(f"Erro ao buscar itens da seção {sid}: {str(e)}")
+        return []
 
 def create_item(sid: int, d: dict, user: str) -> Optional[str]:
     err = _validate_item(d)
@@ -313,6 +342,9 @@ if not st.session_state.usuario:
         st.markdown("<div style='text-align:center;margin-top:20px;color:#8b949e;font-size:11px'>© 2026 Prates</div>", unsafe_allow_html=True)
     st.stop()
 
+# Verificar timeout da sessão
+check_session_timeout()
+
 u = st.session_state.usuario
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -345,13 +377,17 @@ with st.sidebar:
 def pagina_dashboard():
     st.markdown("<h2 style='font-size:20px;font-weight:700;color:#f0f6fc;margin-bottom:15px'>📊 Dashboard</h2>", unsafe_allow_html=True)
     
-    @st.cache_data(ttl=CACHE_TTL["itens"])
-    def load_all():
-        try: return sb.table("pc_itens").select("*, pc_secoes(nome,loja)").execute().data or []
-        except: return []
+    @st.cache_data(ttl=300, show_spinner=False)
+    def load_all_items():
+        try:
+            result = sb.table("pc_itens").select("*, pc_secoes(nome,loja)").execute()
+            return result.data or []
+        except Exception as e:
+            logger.error(f"Erro ao carregar dashboard: {e}")
+            return []
     
     with st.spinner("Carregando..."):
-        todos = load_all()
+        todos = load_all_items()
         
     if not todos:
         st.markdown("<div style='text-align:center;padding:40px;background:#161b22;border-radius:10px;border:1px dashed #30363d'><div style='font-size:36px'>📦</div><div class='text-muted' style='margin-top:8px'>Nenhum produto lançado.</div></div>", unsafe_allow_html=True)
@@ -522,7 +558,9 @@ def pagina_loja(loja: str):
         st.divider()
 
     for sec in secoes:
-        itens_all = get_itens_secao(sec['id'], tuple(STATUS_AT))
+        # CORREÇÃO: Removido o tuple() que causava erro
+        itens_all = get_itens_secao(sec['id'], STATUS_AT)
+        
         # Filter items
         itens = itens_all[:]
         if fst != "Todos": itens = [i for i in itens if i.get("status")==fst]
@@ -542,13 +580,13 @@ def pagina_loja(loja: str):
         
         with st.expander(f"📁 {sec['nome']} ({len(itens_all)} itens){pend_txt}", expanded=True):
             if itens:
-                for item in itens:
+                for idx, item in enumerate(itens):  # Adicionado idx para keys únicas
                     iid = item["id"]
                     
                     # Item Header
                     cols = st.columns([0.3, 3.5, 1.2, 0.8, 0.8, 1.2, 1, 1, 0.8])
                     
-                    sel = cols[0].checkbox("", value=iid in marcados, key=f"chk_{iid}", label_visibility="collapsed")
+                    sel = cols[0].checkbox("", value=iid in marcados, key=f"chk_{iid}_{idx}", label_visibility="collapsed")
                     if sel and iid not in marcados: st.session_state.setdefault(sel_key, []).append(iid)
                     elif not sel and iid in marcados: st.session_state[sel_key].remove(iid)
                     
@@ -567,30 +605,49 @@ def pagina_loja(loja: str):
                     cols[6].markdown(f"{badge(item.get('status',''))} {urg_html}", unsafe_allow_html=True)
                     cols[7].markdown(badge(item.get("prioridade","")), unsafe_allow_html=True)
                     
-                    # Actions with popover
+                    # Actions with popover - CORRIGIDO
                     with cols[8]:
                         with st.popover("⚙️"):
-                            if is_op(): st.caption("Acesso restrito.")
+                            if is_op(): 
+                                st.caption("Acesso restrito.")
                             else:
                                 cur = item.get("status","Pendente")
-                                for sv in STATUS_ALL:
-                                    if st.button(f"{'✓' if sv==cur else ''} {sv}", key=f"st_{sv}_{iid}", use_container_width=True, type="primary" if sv==cur else "secondary"):
-                                        update_item(iid, {"status": sv}); st.rerun()
+                                # Mudar status - usando colunas para evitar conflito
+                                status_cols = st.columns(3)
+                                for st_idx, sv in enumerate(STATUS_ALL):
+                                    col_idx = st_idx % 3
+                                    if status_cols[col_idx].button(
+                                        f"{'✓' if sv==cur else ''} {sv}", 
+                                        key=f"st_{sv}_{iid}_{st_idx}",
+                                        use_container_width=True,
+                                        type="primary" if sv==cur else "secondary"
+                                    ):
+                                        update_item(iid, {"status": sv})
+                                        st.rerun()
+                                
                                 st.divider()
-                                if st.button("Editar", key=f"ed_{iid}", use_container_width=True): 
+                                
+                                # Botão Editar
+                                if st.button("✏️ Editar", key=f"edit_btn_{iid}", use_container_width=True): 
                                     st.session_state[f"ed_{iid}"] = True
+                                    st.rerun()
+                                
+                                # Botão Excluir com confirmação
                                 if st.session_state.get(f"conf_del_{iid}"):
-                                    if st.button("Confirmar", key=f"conf_yes_{iid}", use_container_width=True, type="primary"): 
-                                        delete_item(iid); st.rerun()
-                                    if st.button("Cancelar", key=f"conf_no_{iid}", use_container_width=True): 
-                                        st.session_state[f"conf_del_{iid}"] = False; st.rerun()
+                                    col1, col2 = st.columns(2)
+                                    if col1.button("✅ Confirmar", key=f"del_yes_{iid}", use_container_width=True, type="primary"):
+                                        delete_item(iid)
+                                        st.rerun()
+                                    if col2.button("❌ Cancelar", key=f"del_no_{iid}", use_container_width=True):
+                                        st.session_state[f"conf_del_{iid}"] = False
+                                        st.rerun()
                                 else:
-                                    if st.button("Excluir", key=f"del_{iid}", use_container_width=True): 
-                                        st.session_state[f"conf_del_{iid}"] = True; st.rerun()
+                                    if st.button("🗑️ Excluir", key=f"del_btn_{iid}", use_container_width=True):
+                                        st.session_state[f"conf_del_{iid}"] = True
+                                        st.rerun()
                     
-                    # Edit Panel Compact (half width and height)
+                    # Edit Panel Compact
                     if st.session_state.get(f"ed_{iid}"):
-                        # Check if this item belongs to the current section
                         if item.get("secao_id") == sec["id"]:
                             st.markdown("<div class='edit-panel'>", unsafe_allow_html=True)
                             cols_ed = st.columns([0.5, 4])
