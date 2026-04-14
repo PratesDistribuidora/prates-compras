@@ -26,16 +26,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Função para mostrar erros amigáveis
-def show_error(error_msg, error_detail=None):
-    """Mostra erro de forma amigável para o usuário"""
-    st.error(f"❌ {error_msg}")
-    if error_detail:
-        with st.expander("Detalhes técnicos"):
-            st.code(error_detail)
-    logger.error(f"{error_msg}: {error_detail}")
-
-# CSS Moderno e Leve
+# CSS Moderno e Leve - CORRIGIDO
 st.markdown("""
 <style>
     .stApp {background: #0f1419; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif}
@@ -54,15 +45,17 @@ st.markdown("""
     .stButton>button {background: #238636 !important; color: #fff !important; border: none !important; border-radius: 6px !important; padding: 8px 16px !important; font-weight: 500 !important; font-size: 13px !important}
     .stButton>button:hover {background: #2ea043 !important}
     
-    /* Sidebar Compacta */
+    /* Sidebar Compacta - CORRIGIDO: textos alinhados à esquerda */
     section[data-testid="stSidebar"] {background: #0d1117 !important; border-right: 1px solid #21262d !important; padding: 15px 10px !important}
+    section[data-testid="stSidebar"] .stButton button {
+        text-align: left !important;
+        justify-content: flex-start !important;
+        width: 100% !important;
+        padding: 8px 12px !important;
+    }
     .sidebar-header {text-align: center; padding: 15px 10px; margin-bottom: 15px; border-bottom: 1px solid #21262d}
-    .sidebar-user {font-weight: 600; color: #f0f6fc; font-size: 13px}
+    .sidebar-user {font-weight: 600; color: #f0f6fc; font-size: 13px; text-align: center}
     .sidebar-role {display: inline-block; background: #238636; color: #fff; font-size: 10px; padding: 2px 8px; border-radius: 10px; margin-top: 4px; font-weight: 600}
-    .nav-btn {width: 100%; text-align: left !important; justify-content: flex-start !important; padding: 8px 12px !important; margin: 3px 0 !important; border-radius: 6px !important; background: transparent !important; border: none !important; color: #8b949e !important; font-size: 12px !important}
-    .nav-btn.active {background: #161b22 !important; color: #f0f6fc !important; font-weight: 600}
-    .nav-btn:hover:not(.active) {background: #161b22 !important; color: #e6edf3 !important}
-    .stSidebar .stButton>button {width: 100% !important; min-height: 0 !important}
     
     /* Cards */
     .kpi-card {background: #161b22; border: 1px solid #21262d; border-radius: 10px; padding: 14px; text-align: center}
@@ -82,8 +75,8 @@ st.markdown("""
     .b-Media{background:rgba(210,153,34,.15);color:#D2991E}
     .b-Baixa{background:rgba(63,185,80,.15);color:#3FB950}
     
-    /* Edit Panel Compacto */
-    .edit-panel {background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 12px; margin-bottom: 10px}
+    /* Edit Panel Compacto - CORRIGIDO: mais estreito */
+    .edit-panel {background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; max-width: 800px; margin-left: auto; margin-right: auto}
     
     .divider {height: 1px; background: #21262d; margin: 15px 0}
     .text-muted {color: #8b949e}
@@ -93,6 +86,12 @@ st.markdown("""
     [data-testid="stPopover"]>div>button {background: #1C2128 !important; border: 1px solid #30363d !important; border-radius: 6px !important; color: #E6EDF3 !important; padding: 4px 8px !important; font-size: 12px !important}
     [data-testid="stPopoverBody"] {padding: 4px !important; min-width: 140px !important}
     [data-testid="stPopoverBody"] .stButton>button {font-size: 11px !important; padding: 6px 10px !important; min-height: 0 !important; border-radius: 4px !important}
+    
+    /* Botões de status no popover - mais compactos */
+    [data-testid="stPopoverBody"] .stButton button {
+        font-size: 10px !important;
+        padding: 4px 6px !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -192,7 +191,6 @@ def get_itens_secao(sid: int, status_filter: Optional[List[str]] = None) -> List
     try:
         q = sb.table("pc_itens").select("*").eq("secao_id", sid)
         if status_filter:
-            # Converte para lista se for tuple
             filter_list = list(status_filter) if isinstance(status_filter, tuple) else status_filter
             if filter_list:
                 q = q.in_("status", filter_list)
@@ -348,7 +346,7 @@ check_session_timeout()
 u = st.session_state.usuario
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SIDEBAR
+# SIDEBAR - CORRIGIDO: botões com texto à esquerda
 # ─────────────────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown(f"""
@@ -364,11 +362,15 @@ with st.sidebar:
     
     for label, page in nav:
         active = st.session_state.pagina == page
-        if st.button(label, use_container_width=True, type="primary" if active else "secondary", key=f"nav_{page}"):
-            st.session_state.pagina = page; st.rerun()
+        # Botões da sidebar com texto alinhado à esquerda
+        if st.button(label, use_container_width=True, key=f"nav_{page}"):
+            st.session_state.pagina = page
+            st.rerun()
             
     st.divider()
-    if st.button("🚪 Sair", use_container_width=True): st.session_state.usuario = None; st.rerun()
+    if st.button("🚪 Sair", use_container_width=True):
+        st.session_state.usuario = None
+        st.rerun()
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PAGES
@@ -427,7 +429,6 @@ def pagina_dashboard():
     # Gráficos
     c1, c2, c3 = st.columns([1, 1, 1])
     
-    # Status Chart
     with c1:
         st.markdown("<div class='text-muted' style='font-size:12px;margin-bottom:8px'>POR STATUS</div>", unsafe_allow_html=True)
         s = df.groupby("status").size().reset_index(name="qtd")
@@ -437,7 +438,6 @@ def pagina_dashboard():
         fig.update_layout(showlegend=False, height=200, margin=dict(t=10,b=10,l=10,r=10), paper_bgcolor="#161b22", plot_bgcolor="#0d1117", font=dict(color="#8b949e", size=10))
         st.plotly_chart(fig, use_container_width=True)
         
-    # Loja Chart
     with c2:
         st.markdown("<div class='text-muted' style='font-size:12px;margin-bottom:8px'>POR LOJA</div>", unsafe_allow_html=True)
         l = df.groupby("loja").size().reset_index(name="qtd")
@@ -446,7 +446,6 @@ def pagina_dashboard():
         fig2.update_layout(height=200, margin=dict(t=10,b=10), paper_bgcolor="#161b22", font=dict(color="#8b949e", size=10), legend=dict(orientation="h", y=-0.1, font=dict(size=10)))
         st.plotly_chart(fig2, use_container_width=True)
 
-    # Top Produtos
     with c3:
         st.markdown("<div class='text-muted' style='font-size:12px;margin-bottom:8px'>TOP 5 PRODUTOS</div>", unsafe_allow_html=True)
         top = df.groupby("produto")["qtd"].sum().sort_values(ascending=True).tail(5).reset_index()
@@ -476,8 +475,10 @@ def pagina_loja(loja: str):
     # Search & Actions
     c1, c2, c3 = st.columns([3, 1, 1])
     busca = c1.text_input("", placeholder="Buscar produto, marca, SKU...", label_visibility="collapsed", key=f"busc_{loja}")
-    if c2.button("+ Produto", use_container_width=True, key=f"btnp_{loja}"): st.session_state[f"cp_{loja}"] = not st.session_state.get(f"cp_{loja}", False)
-    if c3.button("Seções", use_container_width=True, key=f"btns_{loja}"): st.session_state[f"gs_{loja}"] = not st.session_state.get(f"gs_{loja}", False)
+    if c2.button("+ Produto", use_container_width=True, key=f"btnp_{loja}"): 
+        st.session_state[f"cp_{loja}"] = not st.session_state.get(f"cp_{loja}", False)
+    if c3.button("Seções", use_container_width=True, key=f"btns_{loja}"): 
+        st.session_state[f"gs_{loja}"] = not st.session_state.get(f"gs_{loja}", False)
 
     # Filters
     f1, f2 = st.columns(2)
@@ -491,20 +492,30 @@ def pagina_loja(loja: str):
             n1, n2 = st.columns([4, 1])
             nn = n1.text_input("", placeholder="Nome da nova seção", label_visibility="collapsed")
             if n2.form_submit_button("+ Criar", type="primary", use_container_width=True):
-                if nn.strip(): create_secao(loja, nn.strip()); st.rerun()
+                if nn.strip(): 
+                    create_secao(loja, nn.strip())
+                    st.rerun()
         for sec in get_secoes(loja):
             with st.form(f"fsec_{sec['id']}"):
                 e1, e2, e3 = st.columns([4, 1, 1])
                 v = e1.text_input("", value=sec["nome"], label_visibility="collapsed")
-                if e2.form_submit_button("Salvar", type="primary", use_container_width=True): update_secao(sec["id"], v.strip()); st.rerun()
-                if e3.form_submit_button("Excluir", use_container_width=True): delete_secao(sec["id"]); st.rerun()
-        if st.button("Fechar", key=f"fgs_{loja}"): st.session_state[f"gs_{loja}"] = False; st.rerun()
+                if e2.form_submit_button("Salvar", type="primary", use_container_width=True): 
+                    update_secao(sec["id"], v.strip())
+                    st.rerun()
+                if e3.form_submit_button("Excluir", use_container_width=True): 
+                    delete_secao(sec["id"])
+                    st.rerun()
+        if st.button("Fechar", key=f"fgs_{loja}"): 
+            st.session_state[f"gs_{loja}"] = False
+            st.rerun()
         st.divider()
 
     # Create Product Form
     if st.session_state.get(f"cp_{loja}"):
         secs = get_secoes(loja)
-        if not secs: st.warning("Crie uma seção primeiro."); st.stop()
+        if not secs: 
+            st.warning("Crie uma seção primeiro.")
+            st.stop()
         
         st.markdown("<div class='sec-hdr' style='border-top:2px solid #238636'><span style='font-weight:600;color:#3FB950;font-size:13px'>Novo Produto</span></div>", unsafe_allow_html=True)
         fmc = {f["nome"]:f["id"] for f in get_fornecedores()}
@@ -532,9 +543,14 @@ def pagina_loja(loja: str):
                     sid = next(s["id"] for s in secs if s["nome"]==sec_sel)
                     fid = fmc.get(forn) if forn != "(Nenhum)" else None
                     err = create_item(sid, {"produto":prod.strip(),"marca":marca.strip(),"sku":sku.strip(),"ean":ean.strip(),"fornecedor_id":fid,"imagem_url":img.strip() or None,"qtd":qtd,"unidade":un,"preco_unit":prec,"total":round(qtd*prec,2),"prioridade":prio,"dt_necessidade":str(dt) if dt else None,"obs":obs.strip(),"status":"Pendente"}, u["nome"])
-                    if err: st.error(err)
-                    else: st.success("Salvo!"); st.session_state[f"cp_{loja}"]=False; st.rerun()
-                else: st.warning("Informe o nome do produto.")
+                    if err: 
+                        st.error(err)
+                    else: 
+                        st.success("Salvo!")
+                        st.session_state[f"cp_{loja}"] = False
+                        st.rerun()
+                else: 
+                    st.warning("Informe o nome do produto.")
         st.divider()
 
     # Sections & Items
@@ -543,7 +559,8 @@ def pagina_loja(loja: str):
     fmc = {f["id"]:f["nome"] for f in get_fornecedores()}
     
     sel_key = f"sel_{loja}"
-    if sel_key not in st.session_state: st.session_state[sel_key] = []
+    if sel_key not in st.session_state: 
+        st.session_state[sel_key] = []
     marcados = st.session_state[sel_key]
     
     if marcados and not is_op():
@@ -552,43 +569,54 @@ def pagina_loja(loja: str):
         ops = [("Aprovar","Aprovado","primary"),("Comprado","Comprado","secondary"),("Entregue","Entregue","secondary"),("Cancelar","Cancelado","secondary"),("Limpar","",None)]
         for i,(lbl,sv,tp) in enumerate(ops):
             if tp and ba[i].button(lbl, key=f"lote_{sv}_{loja}", use_container_width=True, type=tp):
-                if lbl=="Limpar": st.session_state[sel_key]=[]
-                else: batch_update_status(marcados, sv); st.session_state[sel_key]=[]
+                if lbl=="Limpar": 
+                    st.session_state[sel_key] = []
+                else: 
+                    batch_update_status(marcados, sv)
+                    st.session_state[sel_key] = []
                 st.rerun()
         st.divider()
 
     for sec in secoes:
-        # CORREÇÃO: Removido o tuple() que causava erro
         itens_all = get_itens_secao(sec['id'], STATUS_AT)
         
         # Filter items
         itens = itens_all[:]
-        if fst != "Todos": itens = [i for i in itens if i.get("status")==fst]
-        if fpr != "Todas": itens = [i for i in itens if i.get("prioridade")==fpr]
+        if fst != "Todos": 
+            itens = [i for i in itens if i.get("status") == fst]
+        if fpr != "Todas": 
+            itens = [i for i in itens if i.get("prioridade") == fpr]
         if busca:
             b = busca.lower()
             itens = [i for i in itens if b in " ".join([i.get("produto",""),i.get("marca",""),i.get("sku",""),i.get("ean","")]).lower()]
         
         # Hide empty sections when filtering
-        if (busca or fst != "Todos" or fpr != "Todas") and not itens: continue
+        if (busca or fst != "Todos" or fpr != "Todas") and not itens: 
+            continue
             
         tsec = sum(float(i.get("total") or 0) for i in itens_all)
         total_loja += tsec
         
-        npend = sum(1 for i in itens_all if i.get("status")=="Pendente")
-        pend_txt = f" <span style='color:#D2991E;font-size:11px'>({npend} pendentes)</span>" if npend else ""
+        npend = sum(1 for i in itens_all if i.get("status") == "Pendente")
         
-        with st.expander(f"📁 {sec['nome']} ({len(itens_all)} itens){pend_txt}", expanded=True):
+        # CORRIGIDO: texto do expander sem HTML puro
+        expander_title = f"📁 {sec['nome']} ({len(itens_all)} itens)"
+        if npend > 0:
+            expander_title += f" ({npend} pendentes)"
+        
+        with st.expander(expander_title, expanded=True):
             if itens:
-                for idx, item in enumerate(itens):  # Adicionado idx para keys únicas
+                for idx, item in enumerate(itens):
                     iid = item["id"]
                     
                     # Item Header
                     cols = st.columns([0.3, 3.5, 1.2, 0.8, 0.8, 1.2, 1, 1, 0.8])
                     
                     sel = cols[0].checkbox("", value=iid in marcados, key=f"chk_{iid}_{idx}", label_visibility="collapsed")
-                    if sel and iid not in marcados: st.session_state.setdefault(sel_key, []).append(iid)
-                    elif not sel and iid in marcados: st.session_state[sel_key].remove(iid)
+                    if sel and iid not in marcados: 
+                        st.session_state.setdefault(sel_key, []).append(iid)
+                    elif not sel and iid in marcados: 
+                        st.session_state[sel_key].remove(iid)
                     
                     img = item.get("imagem_url","")
                     img_html = f'<img src="{img}" style="width:28px;height:28px;object-fit:cover;border-radius:4px;border:1px solid #30363d">' if img else '📦'
@@ -605,17 +633,17 @@ def pagina_loja(loja: str):
                     cols[6].markdown(f"{badge(item.get('status',''))} {urg_html}", unsafe_allow_html=True)
                     cols[7].markdown(badge(item.get("prioridade","")), unsafe_allow_html=True)
                     
-                    # Actions with popover - CORRIGIDO
+                    # Actions with popover
                     with cols[8]:
                         with st.popover("⚙️"):
                             if is_op(): 
                                 st.caption("Acesso restrito.")
                             else:
                                 cur = item.get("status","Pendente")
-                                # Mudar status - usando colunas para evitar conflito
-                                status_cols = st.columns(3)
+                                # Mudar status - usando 2 colunas para ficar mais compacto
+                                status_cols = st.columns(2)
                                 for st_idx, sv in enumerate(STATUS_ALL):
-                                    col_idx = st_idx % 3
+                                    col_idx = st_idx % 2
                                     if status_cols[col_idx].button(
                                         f"{'✓' if sv==cur else ''} {sv}", 
                                         key=f"st_{sv}_{iid}_{st_idx}",
@@ -627,7 +655,7 @@ def pagina_loja(loja: str):
                                 
                                 st.divider()
                                 
-                                # Botão Editar
+                                # Botão Editar - mais estreito
                                 if st.button("✏️ Editar", key=f"edit_btn_{iid}", use_container_width=True): 
                                     st.session_state[f"ed_{iid}"] = True
                                     st.rerun()
@@ -646,55 +674,66 @@ def pagina_loja(loja: str):
                                         st.session_state[f"conf_del_{iid}"] = True
                                         st.rerun()
                     
-                    # Edit Panel Compact
+                    # Edit Panel - mais estreito (centralizado)
                     if st.session_state.get(f"ed_{iid}"):
                         if item.get("secao_id") == sec["id"]:
-                            st.markdown("<div class='edit-panel'>", unsafe_allow_html=True)
-                            cols_ed = st.columns([0.5, 4])
-                            cols_ed[0].markdown("<div style='padding-top:8px'>✏️</div>", unsafe_allow_html=True)
-                            cols_ed[1].markdown(f"<div style='font-weight:600;font-size:13px;color:#f0f6fc'>{item.get('produto','')}</div>", unsafe_allow_html=True)
-                            
-                            forns2 = get_fornecedores()
-                            fm3 = {f["nome"]:f["id"] for f in forns2}
-                            fopts2 = ["(Nenhum)"]+list(fm3.keys())
-                            fat = "(Nenhum)"
-                            if item.get("fornecedor_id"):
-                                for f in forns2:
-                                    if f["id"]==item["fornecedor_id"]: fat=f["nome"]; break
-                            
-                            with st.form(f"fedit_{iid}", border=False):
-                                # Row 1: compact
-                                re1 = st.columns([2,2,2,1.5,1.5,2])
-                                ep = re1[0].text_input("Produto", value=item.get("produto",""), label_visibility="collapsed")
-                                em = re1[1].text_input("Marca", value=item.get("marca","") or "", label_visibility="collapsed")
-                                esk = re1[2].text_input("SKU", value=item.get("sku","") or "", label_visibility="collapsed")
-                                ee = re1[3].text_input("EAN", value=item.get("ean","") or "", label_visibility="collapsed")
-                                ef2 = re1[4].selectbox("Forn.", fopts2, index=fopts2.index(fat) if fat in fopts2 else 0, label_visibility="collapsed")
-                                ei = re1[5].text_input("Img URL", value=item.get("imagem_url","") or "", label_visibility="collapsed")
+                            # Usar colunas para centralizar e estreitar
+                            left, center, right = st.columns([1, 2, 1])
+                            with center:
+                                st.markdown("<div class='edit-panel'>", unsafe_allow_html=True)
+                                cols_ed = st.columns([0.5, 4])
+                                cols_ed[0].markdown("<div style='padding-top:8px'>✏️</div>", unsafe_allow_html=True)
+                                cols_ed[1].markdown(f"<div style='font-weight:600;font-size:13px;color:#f0f6fc'>{item.get('produto','')}</div>", unsafe_allow_html=True)
                                 
-                                # Row 2: compact
-                                re2 = st.columns([1,1.5,1.5,1.5,1.5,1.5,2])
-                                eq = re2[0].number_input("Qtd", min_value=0.0, value=float(item.get("qtd",0)), step=1.0, label_visibility="collapsed")
-                                eun = re2[1].selectbox("Unid", UNID, index=UNID.index(item.get("unidade","UN")) if item.get("unidade","UN") in UNID else 0, label_visibility="collapsed")
-                                epr = re2[2].number_input("Preço", min_value=0.0, value=float(item.get("preco_unit",0)), step=0.01, format="%.2f", label_visibility="collapsed")
-                                eprio = re2[3].selectbox("Prio", PRIO, index=PRIO.index(item.get("prioridade","Media")) if item.get("prioridade") in PRIO else 1, label_visibility="collapsed")
+                                forns2 = get_fornecedores()
+                                fm3 = {f["nome"]:f["id"] for f in forns2}
+                                fopts2 = ["(Nenhum)"]+list(fm3.keys())
+                                fat = "(Nenhum)"
+                                if item.get("fornecedor_id"):
+                                    for f in forns2:
+                                        if f["id"] == item["fornecedor_id"]: 
+                                            fat = f["nome"]
+                                            break
                                 
-                                _dt_val = None
-                                try:
-                                    if item.get("dt_necessidade"): _dt_val = date.fromisoformat(str(item["dt_necessidade"]))
-                                except: pass
-                                edt = re2[4].date_input("Data", value=_dt_val, label_visibility="collapsed")
-                                eobs = re2[5].text_input("Obs", value=item.get("obs","") or "", label_visibility="collapsed")
-                                
-                                re2[6].markdown("<br>", unsafe_allow_html=True)
-                                saved = re2[6].form_submit_button("💾 Salvar", type="primary", use_container_width=True)
-                                if re2[6].form_submit_button("✖ Cancelar", use_container_width=True):
-                                    st.session_state[f"ed_{iid}"] = False; st.rerun()
-                                if saved:
-                                    err = update_item(iid, {"produto":ep,"marca":em,"sku":esk,"ean":ee,"fornecedor_id":fm3.get(ef2) if ef2!="(Nenhum)" else None,"imagem_url":ei or None,"qtd":eq,"unidade":eun,"preco_unit":epr,"total":round(eq*epr,2),"prioridade":eprio,"dt_necessidade":str(edt) if edt else None,"obs":eobs})
-                                    if err: st.error(err)
-                                    else: st.session_state[f"ed_{iid}"] = False; st.rerun()
-                            st.markdown("</div>", unsafe_allow_html=True)
+                                with st.form(f"fedit_{iid}", border=False):
+                                    # Row 1: compact
+                                    re1 = st.columns([2,2,2,1.5,1.5,2])
+                                    ep = re1[0].text_input("Produto", value=item.get("produto",""), label_visibility="collapsed")
+                                    em = re1[1].text_input("Marca", value=item.get("marca","") or "", label_visibility="collapsed")
+                                    esk = re1[2].text_input("SKU", value=item.get("sku","") or "", label_visibility="collapsed")
+                                    ee = re1[3].text_input("EAN", value=item.get("ean","") or "", label_visibility="collapsed")
+                                    ef2 = re1[4].selectbox("Forn.", fopts2, index=fopts2.index(fat) if fat in fopts2 else 0, label_visibility="collapsed")
+                                    ei = re1[5].text_input("Img URL", value=item.get("imagem_url","") or "", label_visibility="collapsed")
+                                    
+                                    # Row 2: compact
+                                    re2 = st.columns([1,1.5,1.5,1.5,1.5,1.5,2])
+                                    eq = re2[0].number_input("Qtd", min_value=0.0, value=float(item.get("qtd",0)), step=1.0, label_visibility="collapsed")
+                                    eun = re2[1].selectbox("Unid", UNID, index=UNID.index(item.get("unidade","UN")) if item.get("unidade","UN") in UNID else 0, label_visibility="collapsed")
+                                    epr = re2[2].number_input("Preço", min_value=0.0, value=float(item.get("preco_unit",0)), step=0.01, format="%.2f", label_visibility="collapsed")
+                                    eprio = re2[3].selectbox("Prio", PRIO, index=PRIO.index(item.get("prioridade","Media")) if item.get("prioridade") in PRIO else 1, label_visibility="collapsed")
+                                    
+                                    _dt_val = None
+                                    try:
+                                        if item.get("dt_necessidade"): 
+                                            _dt_val = date.fromisoformat(str(item["dt_necessidade"]))
+                                    except: 
+                                        pass
+                                    edt = re2[4].date_input("Data", value=_dt_val, label_visibility="collapsed")
+                                    eobs = re2[5].text_input("Obs", value=item.get("obs","") or "", label_visibility="collapsed")
+                                    
+                                    re2[6].markdown("<br>", unsafe_allow_html=True)
+                                    saved = re2[6].form_submit_button("💾 Salvar", type="primary", use_container_width=True)
+                                    if re2[6].form_submit_button("✖ Cancelar", use_container_width=True):
+                                        st.session_state[f"ed_{iid}"] = False
+                                        st.rerun()
+                                    if saved:
+                                        err = update_item(iid, {"produto":ep,"marca":em,"sku":esk,"ean":ee,"fornecedor_id":fm3.get(ef2) if ef2!="(Nenhum)" else None,"imagem_url":ei or None,"qtd":eq,"unidade":eun,"preco_unit":epr,"total":round(eq*epr,2),"prioridade":eprio,"dt_necessidade":str(edt) if edt else None,"obs":eobs})
+                                        if err: 
+                                            st.error(err)
+                                        else: 
+                                            st.session_state[f"ed_{iid}"] = False
+                                            st.rerun()
+                                st.markdown("</div>", unsafe_allow_html=True)
             else:
                 if not (busca or fst != "Todos" or fpr != "Todas"):
                     st.markdown("<span class='text-muted' style='font-size:12px'>Nenhum item nesta seção.</span>", unsafe_allow_html=True)
@@ -712,7 +751,9 @@ def pagina_historico():
     with st.spinner("Carregando..."):
         todos = sb.table("pc_itens").select("*, pc_secoes(nome,loja)").in_("status", STATUS_HI).execute().data or []
         
-    if not todos: st.info("Nenhum item no histórico."); return
+    if not todos: 
+        st.info("Nenhum item no histórico.")
+        return
     
     df = pd.DataFrame(todos)
     df["loja"] = df["pc_secoes"].apply(lambda x: x["loja"] if x else "")
@@ -720,10 +761,14 @@ def pagina_historico():
     df["total"] = pd.to_numeric(df.get("total",0), errors="coerce").fillna(0)
     df["fornecedor"] = df["fornecedor_id"].map({f["id"]:f["nome"] for f in get_fornecedores()}).fillna("")
     
-    if fl!="Todas": df=df[df["loja"]==("distribuidora" if fl=="Distribuidora" else "sublimacao")]
-    if fs!="Todos": df=df[df["status"]==fs]
-    if fp!="Todas": df=df[df["prioridade"]==fp]
-    if fb: df=df[df["produto"].str.lower().str.contains(fb.lower(), na=False)]
+    if fl != "Todas": 
+        df = df[df["loja"] == ("distribuidora" if fl=="Distribuidora" else "sublimacao")]
+    if fs != "Todos": 
+        df = df[df["status"] == fs]
+    if fp != "Todas": 
+        df = df[df["prioridade"] == fp]
+    if fb: 
+        df = df[df["produto"].str.lower().str.contains(fb.lower(), na=False)]
     
     st.markdown(f"<div class='text-muted' style='font-size:12px;margin:6px 0'>{len(df)} itens · Total: <b style='color:#58A6FF'>{fmt_brl(df['total'].sum())}</b></div>", unsafe_allow_html=True)
     st.dataframe(df[["produto","marca","sku","secao","loja","fornecedor","qtd","unidade","total","prioridade","status","dt_necessidade"]].rename(columns={"produto":"Produto","marca":"Marca","sku":"SKU","secao":"Seção","loja":"Loja","fornecedor":"Fornecedor","qtd":"Qtd","unidade":"Unid","total":"Total","prioridade":"Prioridade","status":"Status","dt_necessidade":"Data"}), use_container_width=True, hide_index=True, height=400)
@@ -739,18 +784,25 @@ def pagina_exportar():
         with st.spinner("Gerando..."):
             sf = None if inc else STATUS_AT
             lojas_ = ["distribuidora","sublimacao"] if lk=="ambas" else [lk]
-            wb = Workbook(); ws = wb.active; ws.title = "Compras"
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Compras"
             row = 1
             ws.merge_cells(f"A{row}:L{row}")
             c = ws.cell(row=row, column=1, value="GRUPO PRATES - GUIA DE COMPRAS")
-            c.font = Font(bold=True, size=14, color="FFFFFF"); c.fill = PatternFill("solid", start_color="0D1117")
-            c.alignment = Alignment(horizontal="center"); ws.row_dimensions[row].height = 28; row += 1
+            c.font = Font(bold=True, size=14, color="FFFFFF")
+            c.fill = PatternFill("solid", start_color="0D1117")
+            c.alignment = Alignment(horizontal="center")
+            ws.row_dimensions[row].height = 28
+            row += 1
             
             hdrs = ["Seção","Produto","Marca","SKU","EAN","Fornecedor","Qtd","Unid","Preço","Total","Prioridade","Status"]
             for i,h in enumerate(hdrs,1):
                 ws.column_dimensions[get_column_letter(i)].width = [20,28,16,14,14,18,7,6,12,12,12,12][i-1]
-                c = ws.cell(row=row, column=i, value=h); c.font = Font(bold=True, color="FFFFFF", size=9)
-                c.fill = PatternFill("solid", start_color="21262D"); c.alignment = Alignment(horizontal="center")
+                c = ws.cell(row=row, column=i, value=h)
+                c.font = Font(bold=True, color="FFFFFF", size=9)
+                c.fill = PatternFill("solid", start_color="21262D")
+                c.alignment = Alignment(horizontal="center")
             row += 1
             
             fme = {f["id"]:f["nome"] for f in get_fornecedores()}
@@ -758,26 +810,43 @@ def pagina_exportar():
                 info = LOJAS[loja]
                 ws.merge_cells(f"A{row}:L{row}")
                 c = ws.cell(row=row, column=1, value=f"  {info['nome'].upper()}")
-                c.font = Font(bold=True, size=11, color="FFFFFF"); c.fill = PatternFill("solid", start_color="161B22")
-                c.alignment = Alignment(horizontal="left"); ws.row_dimensions[row].height = 20; row += 1; tl = 0
+                c.font = Font(bold=True, size=11, color="FFFFFF")
+                c.fill = PatternFill("solid", start_color="161B22")
+                c.alignment = Alignment(horizontal="left")
+                ws.row_dimensions[row].height = 20
+                row += 1
+                tl = 0
                 
                 for sec in get_secoes(loja):
                     for ri, item in enumerate(get_itens_secao(sec["id"], tuple(sf) if sf else None)):
                         zb = "0D1117" if ri%2==0 else "161B22"
                         vals = [sec["nome"],item.get("produto",""),item.get("marca",""),item.get("sku",""),item.get("ean",""),fme.get(item.get("fornecedor_id"),""),item.get("qtd",""),item.get("unidade",""),item.get("preco_unit",""),item.get("total",""),item.get("prioridade",""),item.get("status","")]
                         for ci,v in enumerate(vals,1):
-                            c = ws.cell(row=row, column=ci, value=v); c.font = Font(size=9, color="E6EDF3")
-                            c.fill = PatternFill("solid", start_color=zb); c.alignment = Alignment(horizontal="center" if ci>5 else "left")
-                            if ci in (9,10) and v: c.number_format = '"R$" #,##0.00'
-                        ws.row_dimensions[row].height = 16; tl += float(item.get("total") or 0); row += 1
+                            c = ws.cell(row=row, column=ci, value=v)
+                            c.font = Font(size=9, color="E6EDF3")
+                            c.fill = PatternFill("solid", start_color=zb)
+                            c.alignment = Alignment(horizontal="center" if ci>5 else "left")
+                            if ci in (9,10) and v: 
+                                c.number_format = '"R$" #,##0.00'
+                        ws.row_dimensions[row].height = 16
+                        tl += float(item.get("total") or 0)
+                        row += 1
                         
                 ws.merge_cells(f"A{row}:I{row}")
                 c = ws.cell(row=row, column=1, value=f"TOTAL {info['nome'].upper()}")
-                c.font = Font(bold=True, size=10, color="FFFFFF"); c.fill = PatternFill("solid", start_color="0D1117"); c.alignment = Alignment(horizontal="right")
-                c = ws.cell(row=row, column=10, value=tl); c.font = Font(bold=True, size=10, color="58A6FF"); c.fill = PatternFill("solid", start_color="0D1117"); c.number_format = '"R$" #,##0.00'
-                ws.row_dimensions[row].height = 22; row += 2
+                c.font = Font(bold=True, size=10, color="FFFFFF")
+                c.fill = PatternFill("solid", start_color="0D1117")
+                c.alignment = Alignment(horizontal="right")
+                c = ws.cell(row=row, column=10, value=tl)
+                c.font = Font(bold=True, size=10, color="58A6FF")
+                c.fill = PatternFill("solid", start_color="0D1117")
+                c.number_format = '"R$" #,##0.00'
+                ws.row_dimensions[row].height = 22
+                row += 2
                 
-            buf = io.BytesIO(); wb.save(buf); buf.seek(0)
+            buf = io.BytesIO()
+            wb.save(buf)
+            buf.seek(0)
             st.download_button("Baixar Excel", buf, file_name=f"Compras_{datetime.now().strftime('%Y%m%d')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
 
 def pagina_fornecedores():
@@ -786,41 +855,64 @@ def pagina_fornecedores():
     with tab_n:
         with st.form("fnovoforn"):
             na,nb,nc,nd,ne,nf = st.columns([2.5,2,1.8,2,1.8,1])
-            fn = na.text_input("Nome *"); fc = nb.text_input("Contato"); ft = nc.text_input("Telefone")
-            fe = nd.text_input("Email"); fcnpj = ne.text_input("CNPJ"); nf.markdown("<br>", unsafe_allow_html=True)
+            fn = na.text_input("Nome *")
+            fc = nb.text_input("Contato")
+            ft = nc.text_input("Telefone")
+            fe = nd.text_input("Email")
+            fcnpj = ne.text_input("CNPJ")
+            nf.markdown("<br>", unsafe_allow_html=True)
             if nf.form_submit_button("+ Adicionar", type="primary", use_container_width=True):
-                if fn.strip(): create_fornecedor({"nome":fn.strip(),"contato":fc,"telefone":ft,"email":fe,"cnpj":fcnpj,"observacoes":"","ativo":True}); st.success("Cadastrado!"); st.rerun()
-                else: st.warning("Informe o nome.")
+                if fn.strip(): 
+                    create_fornecedor({"nome":fn.strip(),"contato":fc,"telefone":ft,"email":fe,"cnpj":fcnpj,"observacoes":"","ativo":True})
+                    st.success("Cadastrado!")
+                    st.rerun()
+                else: 
+                    st.warning("Informe o nome.")
     with tab_l:
         bf = st.text_input("","", placeholder="Buscar...", key="bff", label_visibility="collapsed")
         forns = [f for f in get_fornecedores() if not bf or bf.lower() in f["nome"].lower()]
         for forn in forns:
             with st.form(f"ef_{forn['id']}"):
                 fa,fb,fc,fd,fe,fg,fh = st.columns([2.5,1.8,1.8,2,1.8,.7,.7])
-                en = fa.text_input("Nome", value=forn.get("nome","")); ec = fb.text_input("Contato", value=forn.get("contato",""))
-                et = fc.text_input("Telefone", value=forn.get("telefone","")); ee = fd.text_input("Email", value=forn.get("email",""))
+                en = fa.text_input("Nome", value=forn.get("nome",""))
+                ec = fb.text_input("Contato", value=forn.get("contato",""))
+                et = fc.text_input("Telefone", value=forn.get("telefone",""))
+                ee = fd.text_input("Email", value=forn.get("email",""))
                 ecnpj = fe.text_input("CNPJ", value=forn.get("cnpj",""))
                 fg.markdown("<br>", unsafe_allow_html=True)
                 eobs = st.text_input("Obs", value=forn.get("observacoes",""), label_visibility="collapsed", placeholder="Obs...")
-                if fg.form_submit_button("💾", use_container_width=True, type="primary"): update_fornecedor(forn["id"], {"nome":en,"contato":ec,"telefone":et,"email":ee,"cnpj":ecnpj,"observacoes":eobs}); st.rerun()
+                if fg.form_submit_button("💾", use_container_width=True, type="primary"): 
+                    update_fornecedor(forn["id"], {"nome":en,"contato":ec,"telefone":et,"email":ee,"cnpj":ecnpj,"observacoes":eobs})
+                    st.rerun()
                 fh.markdown("<br>", unsafe_allow_html=True)
-                if fh.form_submit_button("🗑", use_container_width=True): delete_fornecedor(forn["id"]); st.rerun()
+                if fh.form_submit_button("🗑", use_container_width=True): 
+                    delete_fornecedor(forn["id"])
+                    st.rerun()
 
 def pagina_admin():
-    if u["acesso"] != "admin": st.error("Acesso restrito."); return
+    if u["acesso"] != "admin": 
+        st.error("Acesso restrito.")
+        return
     st.markdown("<h2 style='font-size:20px;font-weight:700;color:#f0f6fc;margin-bottom:12px'>⚙️ Admin</h2>", unsafe_allow_html=True)
     tab_u, tab_s = st.tabs(["Usuários", "Seções"])
     with tab_u:
         st.markdown("#### Novo Usuário")
         with st.form("fnu"):
             c1,c2,c3,c4 = st.columns(4)
-            nome = c1.text_input("Nome"); email = c2.text_input("Email"); senha = c3.text_input("Senha", type="password")
+            nome = c1.text_input("Nome")
+            email = c2.text_input("Email")
+            senha = c3.text_input("Senha", type="password")
             acesso = c4.selectbox("Acesso", ["op_dist","op_sub","op_ambas","distribuidora","sublimacao","ambas","admin"], format_func=lambda x: {"op_dist":"Operador Dist.","op_sub":"Operador Sub.","op_ambas":"Operador Ambas","distribuidora":"Gestor Dist.","sublimacao":"Gestor Sub.","ambas":"Gestor Ambas","admin":"Administrador"}[x])
             if st.form_submit_button("Criar", type="primary"):
-                if nome and email and senha: err = create_usuario(nome, email, senha, acesso); st.success("Criado!") if not err else st.error(err); st.rerun()
+                if nome and email and senha: 
+                    err = create_usuario(nome, email, senha, acesso)
+                    if err: 
+                        st.error(err)
+                    else: 
+                        st.success("Criado!")
+                    st.rerun()
         st.markdown("#### Usuários")
         for usu in get_usuarios():
-            # Mapeamento de acesso para texto legível
             acesso_map = {
                 "op_dist": "Operador Dist.",
                 "op_sub": "Operador Sub.",
@@ -839,7 +931,6 @@ def pagina_admin():
                 ee = e2.text_input("Email", value=usu["email"])
                 e3,e4 = st.columns(2)
                 
-                # Lista de opções com texto legível
                 opcoes_display = ["Administrador", "Gestor Ambas", "Gestor Dist.", "Gestor Sub.", "Operador Ambas", "Operador Dist.", "Operador Sub."]
                 opcoes_valor = ["admin", "ambas", "distribuidora", "sublimacao", "op_ambas", "op_dist", "op_sub"]
                 idx_atual = opcoes_valor.index(usu["acesso"]) if usu["acesso"] in opcoes_valor else 0
@@ -849,41 +940,58 @@ def pagina_admin():
                 
                 s1,s2 = st.columns(2)
                 if s1.form_submit_button("Salvar", type="primary"):
-                    # Converte display de volta para valor
                     ea_valor = opcoes_valor[opcoes_display.index(ea_display)]
                     d = {"nome":en,"email":ee,"acesso":ea_valor}
-                    if ep: d["senha_hash"] = hash_pwd(ep)
+                    if ep: 
+                        d["senha_hash"] = hash_pwd(ep)
                     err = update_usuario(usu["id"], d)
-                    if err: st.error(err)
-                    else: st.success("Salvo!")
+                    if err: 
+                        st.error(err)
+                    else: 
+                        st.success("Salvo!")
                     st.rerun()
                 if s2.form_submit_button("Desativar" if usu["ativo"] else "Ativar"):
-                    update_usuario(usu["id"], {"ativo":not usu["ativo"]})
+                    update_usuario(usu["id"], {"ativo": not usu["ativo"]})
                     st.rerun()
     with tab_s:
         for loja, info in LOJAS.items():
             st.markdown(f"#### {info['icone']} {info['nome']}")
             for sec in get_secoes(loja):
                 with st.form(f"as_{sec['id']}"):
-                    s1,s2,s3 = st.columns([4,1.5,1]); nn = s1.text_input("", value=sec["nome"], label_visibility="collapsed")
-                    if s2.form_submit_button("Salvar"): update_secao(sec["id"], nn); st.rerun()
-                    if s3.form_submit_button("Excluir"): delete_secao(sec["id"]); st.rerun()
+                    s1,s2,s3 = st.columns([4,1.5,1])
+                    nn = s1.text_input("", value=sec["nome"], label_visibility="collapsed")
+                    if s2.form_submit_button("Salvar"): 
+                        update_secao(sec["id"], nn)
+                        st.rerun()
+                    if s3.form_submit_button("Excluir"): 
+                        delete_secao(sec["id"])
+                        st.rerun()
             st.divider()
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ROUTER
 # ─────────────────────────────────────────────────────────────────────────────
 pg = st.session_state.pagina
-if   pg == "dashboard":    pagina_dashboard()
+if pg == "dashboard":
+    pagina_dashboard()
 elif pg == "distribuidora":
-    if check_perm("distribuidora"): pagina_loja("distribuidora")
-    else: st.error("Acesso negado.")
+    if check_perm("distribuidora"): 
+        pagina_loja("distribuidora")
+    else: 
+        st.error("Acesso negado.")
 elif pg == "sublimacao":
-    if check_perm("sublimacao"): pagina_loja("sublimacao")
-    else: st.error("Acesso negado.")
-elif pg == "historico":    pagina_historico()
-elif pg == "exportar":     pagina_exportar()
-elif pg == "fornecedores": pagina_fornecedores()
+    if check_perm("sublimacao"): 
+        pagina_loja("sublimacao")
+    else: 
+        st.error("Acesso negado.")
+elif pg == "historico":
+    pagina_historico()
+elif pg == "exportar":
+    pagina_exportar()
+elif pg == "fornecedores":
+    pagina_fornecedores()
 elif pg == "admin":
-    if u["acesso"] == "admin": pagina_admin()
-    else: st.error("Acesso restrito.")
+    if u["acesso"] == "admin": 
+        pagina_admin()
+    else: 
+        st.error("Acesso restrito.")
