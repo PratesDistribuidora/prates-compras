@@ -758,24 +758,51 @@ def pagina_admin():
         with st.form("fnu"):
             c1,c2,c3,c4 = st.columns(4)
             nome = c1.text_input("Nome"); email = c2.text_input("Email"); senha = c3.text_input("Senha", type="password")
-            acesso = c4.selectbox("Acesso", ["op_dist","op_sub","op_ambas","distribuidora","sublimacao","ambas","admin"], format_func=lambda x: {"op_dist":"Op. Dist","op_sub":"Op. Sub","op_ambas":"Op. Ambas","distribuidora":"Gestor Dist","sublimacao":"Gestor Sub","ambas":"Gestor Ambas","admin":"Admin"}[x])
+            acesso = c4.selectbox("Acesso", ["op_dist","op_sub","op_ambas","distribuidora","sublimacao","ambas","admin"], format_func=lambda x: {"op_dist":"Operador Dist.","op_sub":"Operador Sub.","op_ambas":"Operador Ambas","distribuidora":"Gestor Dist.","sublimacao":"Gestor Sub.","ambas":"Gestor Ambas","admin":"Administrador"}[x])
             if st.form_submit_button("Criar", type="primary"):
                 if nome and email and senha: err = create_usuario(nome, email, senha, acesso); st.success("Criado!") if not err else st.error(err); st.rerun()
         st.markdown("#### Usuários")
         for usu in get_usuarios():
-            st.markdown(f"<div style='background:#161b22;border:1px solid #30363d;border-radius:6px;padding:8px 10px;margin-bottom:4px'><b style='color:#f0f6fc;font-size:13px'>{usu['nome']}</b> <span class='text-muted' style='font-size:12px'>· {usu['email']} · {usu['acesso']} · {'✅' if usu['ativo'] else '❌'}</span></div>", unsafe_allow_html=True)
+            # Mapeamento de acesso para texto legível
+            acesso_map = {
+                "op_dist": "Operador Dist.",
+                "op_sub": "Operador Sub.",
+                "op_ambas": "Operador Ambas",
+                "distribuidora": "Gestor Dist.",
+                "sublimacao": "Gestor Sub.",
+                "ambas": "Gestor Ambas",
+                "admin": "Administrador"
+            }
+            acesso_texto = acesso_map.get(usu["acesso"], usu["acesso"])
+            
+            st.markdown(f"<div style='background:#161b22;border:1px solid #30363d;border-radius:6px;padding:8px 10px;margin-bottom:4px'><b style='color:#f0f6fc;font-size:13px'>{usu['nome']}</b> <span class='text-muted' style='font-size:12px'>· {usu['email']} · <b style='color:#3FB950'>{acesso_texto}</b> · {'✅' if usu['ativo'] else '❌'}</span></div>", unsafe_allow_html=True)
             with st.form(f"eu_{usu['id']}"):
-                e1,e2 = st.columns(2); en=e1.text_input("Nome", value=usu["nome"]); ee=e2.text_input("Email", value=usu["email"])
+                e1,e2 = st.columns(2)
+                en = e1.text_input("Nome", value=usu["nome"])
+                ee = e2.text_input("Email", value=usu["email"])
                 e3,e4 = st.columns(2)
-                _opts = ["op_dist","op_sub","op_ambas","distribuidora","sublimacao","ambas","admin"]
-                ea = e3.selectbox("Acesso", _opts, index=_opts.index(usu["acesso"]) if usu["acesso"] in _opts else 0, format_func=lambda x: {"op_dist":"Op. Dist","op_sub":"Op. Sub","op_ambas":"Op. Ambas","distribuidora":"Gestor Dist","sublimacao":"Gestor Sub","ambas":"Gestor Ambas","admin":"Admin"}[x])
+                
+                # Lista de opções com texto legível
+                opcoes_display = ["Administrador", "Gestor Ambas", "Gestor Dist.", "Gestor Sub.", "Operador Ambas", "Operador Dist.", "Operador Sub."]
+                opcoes_valor = ["admin", "ambas", "distribuidora", "sublimacao", "op_ambas", "op_dist", "op_sub"]
+                idx_atual = opcoes_valor.index(usu["acesso"]) if usu["acesso"] in opcoes_valor else 0
+                
+                ea_display = e3.selectbox("Acesso", opcoes_display, index=idx_atual)
                 ep = e4.text_input("Nova Senha", type="password")
+                
                 s1,s2 = st.columns(2)
                 if s1.form_submit_button("Salvar", type="primary"):
-                    d = {"nome":en,"email":ee,"acesso":ea}
+                    # Converte display de volta para valor
+                    ea_valor = opcoes_valor[opcoes_display.index(ea_display)]
+                    d = {"nome":en,"email":ee,"acesso":ea_valor}
                     if ep: d["senha_hash"] = hash_pwd(ep)
-                    err = update_usuario(usu["id"], d); st.success("Salvo!") if not err else st.error(err); st.rerun()
-                if s2.form_submit_button("Desativar" if usu["ativo"] else "Ativar"): update_usuario(usu["id"], {"ativo":not usu["ativo"]}); st.rerun()
+                    err = update_usuario(usu["id"], d)
+                    if err: st.error(err)
+                    else: st.success("Salvo!")
+                    st.rerun()
+                if s2.form_submit_button("Desativar" if usu["ativo"] else "Ativar"):
+                    update_usuario(usu["id"], {"ativo":not usu["ativo"]})
+                    st.rerun()
     with tab_s:
         for loja, info in LOJAS.items():
             st.markdown(f"#### {info['icone']} {info['nome']}")
