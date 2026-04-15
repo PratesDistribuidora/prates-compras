@@ -40,20 +40,27 @@ st.markdown("""
     .stButton>button {background: #238636 !important; color: #fff !important; border: none !important; border-radius: 6px !important; padding: 8px 16px !important; font-weight: 500 !important; font-size: 13px !important}
     .stButton>button:hover {background: #2ea043 !important}
 
+    /* ── SIDEBAR ── */
     section[data-testid="stSidebar"] {background: #0d1117 !important; border-right: 1px solid #21262d !important; padding: 15px 10px !important}
-    section[data-testid="stSidebar"] .stButton > button {
-        text-align: left !important;
+
+    /* Alinhamento à esquerda — atinge o botão E o container interno do Streamlit */
+    section[data-testid="stSidebar"] button {
         justify-content: flex-start !important;
+        text-align: left !important;
+        padding-left: 14px !important;
         width: 100% !important;
-        padding: 8px 12px !important;
-        display: flex !important;
-        align-items: center !important;
     }
-    section[data-testid="stSidebar"] .stButton > button p,
-    section[data-testid="stSidebar"] .stButton > button span {
+    section[data-testid="stSidebar"] button > div {
+        justify-content: flex-start !important;
+        text-align: left !important;
+        width: 100% !important;
+    }
+    section[data-testid="stSidebar"] button p {
         text-align: left !important;
         margin: 0 !important;
+        width: 100% !important;
     }
+
     .sidebar-header {text-align: center; padding: 15px 10px; margin-bottom: 15px; border-bottom: 1px solid #21262d}
     .sidebar-user {font-weight: 600; color: #f0f6fc; font-size: 13px; text-align: center}
     .sidebar-role {display: inline-block; background: #238636; color: #fff; font-size: 10px; padding: 2px 8px; border-radius: 10px; margin-top: 4px; font-weight: 600}
@@ -82,6 +89,10 @@ st.markdown("""
     [data-testid="stPopoverBody"] {padding: 4px !important; min-width: 140px !important}
     [data-testid="stPopoverBody"] .stButton>button {font-size: 10px !important; padding: 4px 6px !important; min-height: 0 !important; border-radius: 4px !important}
 </style>
+<script>
+    // Força idioma pt-BR no documento para que o calendário do date_input apareça em português
+    document.documentElement.lang = 'pt-BR';
+</script>
 """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -656,7 +667,7 @@ def pagina_loja(loja: str):
                 un   = r2[1].selectbox("Unid",      UNID)
                 prec = r2[2].number_input("Preço",  min_value=0.0, step=0.01, format="%.2f")
                 prio = r2[3].selectbox("Prioridade",PRIO, index=1)
-                dt   = r2[4].date_input("Necessidade", value=None, format="DD/MM/YYYY")
+                dt_str = r2[4].text_input("Necessidade", placeholder="DD/MM/AAAA")
                 img  = r2[5].text_input("URL Img",  placeholder="https://...")
                 obs  = r2[6].text_input("Obs")
                 r2[7].markdown("<br>", unsafe_allow_html=True)
@@ -665,13 +676,20 @@ def pagina_loja(loja: str):
                     if prod.strip():
                         sid = next(s["id"] for s in secs if s["nome"] == sec_sel)
                         fid = fmc.get(forn) if forn != "(Nenhum)" else None
+                        # Converter DD/MM/AAAA → YYYY-MM-DD para salvar no banco
+                        dt_iso = None
+                        if dt_str.strip():
+                            try:
+                                dt_iso = datetime.strptime(dt_str.strip(), "%d/%m/%Y").date().isoformat()
+                            except:
+                                st.warning("Data inválida. Use o formato DD/MM/AAAA.")
                         err = create_item(sid, {
                             "produto": prod.strip(), "marca": marca.strip(),
                             "sku": sku.strip(), "ean": ean.strip(),
                             "fornecedor_id": fid, "imagem_url": img.strip() or None,
                             "qtd": qtd, "unidade": un, "preco_unit": prec,
                             "total": round(qtd * prec, 2), "prioridade": prio,
-                            "dt_necessidade": str(dt) if dt else None,
+                            "dt_necessidade": dt_iso,
                             "obs": obs.strip(), "status": "Pendente"
                         }, u["nome"])
                         if err:
@@ -848,13 +866,14 @@ def pagina_loja(loja: str):
                             eprio = re2[3].selectbox("Prio", PRIO,
                                                       index=PRIO.index(item.get("prioridade","Media"))
                                                       if item.get("prioridade") in PRIO else 1)
-                            _dt_val = None
+                            _dt_val = ""
                             try:
                                 if item.get("dt_necessidade"):
-                                    _dt_val = date.fromisoformat(str(item["dt_necessidade"]))
+                                    _dt_obj = date.fromisoformat(str(item["dt_necessidade"]))
+                                    _dt_val = _dt_obj.strftime("%d/%m/%Y")
                             except: pass
-                            # Data em formato brasileiro — CORRIGIDO
-                            edt  = re2[4].date_input("Data", value=_dt_val, format="DD/MM/YYYY")
+                            # Campo de data em português, sem calendário em inglês
+                            edt_str = re2[4].text_input("Data", value=_dt_val, placeholder="DD/MM/AAAA")
                             eobs = re2[5].text_input("Obs", value=item.get("obs","") or "")
 
                             btn1, btn2 = st.columns(2)
@@ -865,13 +884,20 @@ def pagina_loja(loja: str):
                             if cancel:
                                 st.session_state[f"ed_{iid}"] = False; st.rerun()
                             if saved:
+                                # Converter DD/MM/AAAA → YYYY-MM-DD
+                                edt_iso = None
+                                if edt_str.strip():
+                                    try:
+                                        edt_iso = datetime.strptime(edt_str.strip(), "%d/%m/%Y").date().isoformat()
+                                    except:
+                                        st.warning("Data inválida. Use DD/MM/AAAA.")
                                 err = update_item(iid, {
                                     "produto": ep, "marca": em2, "sku": esk, "ean": ee,
                                     "fornecedor_id": fm3.get(ef2) if ef2 != "(Nenhum)" else None,
                                     "imagem_url": ei or None,
                                     "qtd": eq, "unidade": eun, "preco_unit": epr,
                                     "total": round(eq * epr, 2), "prioridade": eprio,
-                                    "dt_necessidade": str(edt) if edt else None,
+                                    "dt_necessidade": edt_iso,
                                     "obs": eobs
                                 })
                                 if err:
