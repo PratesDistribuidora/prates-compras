@@ -83,9 +83,38 @@ st.markdown("""
     /* Rótulo (label) dos selects */
     .stSelectbox label { color: #8b949e !important; font-size: 12px !important; }
 
-    /* ── BOTÕES ── */
-    .stButton>button {background: #238636 !important; color: #fff !important; border: none !important; border-radius: 6px !important; padding: 8px 16px !important; font-weight: 500 !important; font-size: 13px !important}
-    .stButton>button:hover {background: #2ea043 !important}
+    /* ── BOTÕES — primário=verde, secundário=discreto ── */
+    /* Botões primários: verde */
+    button[data-testid="baseButton-primary"],
+    [data-testid="baseButton-primary"] {
+        background: #238636 !important;
+        color: #fff !important;
+        border: none !important;
+        border-radius: 6px !important;
+        padding: 8px 16px !important;
+        font-weight: 600 !important;
+        font-size: 13px !important;
+    }
+    button[data-testid="baseButton-primary"]:hover,
+    [data-testid="baseButton-primary"]:hover {
+        background: #2ea043 !important;
+    }
+    /* Botões secundários: fundo escuro, borda sutil */
+    button[data-testid="baseButton-secondary"],
+    [data-testid="baseButton-secondary"] {
+        background: #21262d !important;
+        color: #e6edf3 !important;
+        border: 1px solid #30363d !important;
+        border-radius: 6px !important;
+        padding: 8px 16px !important;
+        font-weight: 500 !important;
+        font-size: 13px !important;
+    }
+    button[data-testid="baseButton-secondary"]:hover,
+    [data-testid="baseButton-secondary"]:hover {
+        background: #30363d !important;
+        border-color: #8b949e !important;
+    }
 
     /* ── SIDEBAR ── */
     section[data-testid="stSidebar"] {background: #0d1117 !important; border-right: 1px solid #21262d !important; padding: 15px 10px !important}
@@ -133,22 +162,6 @@ st.markdown("""
     [data-testid="stPopover"]>div>button {background: #1C2128 !important; border: 1px solid #30363d !important; border-radius: 6px !important; color: #E6EDF3 !important; padding: 4px 8px !important; font-size: 12px !important}
     [data-testid="stPopoverBody"] {padding: 4px !important; min-width: 140px !important}
     [data-testid="stPopoverBody"] .stButton>button {font-size: 10px !important; padding: 4px 6px !important; min-height: 0 !important; border-radius: 4px !important}
-
-    /* Botão discreto esqueci senha — estilo link/secondary como na Sublimação */
-    .esqueci-wrap .stButton > button {
-        background: transparent !important;
-        color: #8b949e !important;
-        border: 1px solid #30363d !important;
-        font-size: 12px !important;
-        font-weight: 400 !important;
-        box-shadow: none !important;
-        padding: 6px 12px !important;
-    }
-    .esqueci-wrap .stButton > button:hover {
-        background: #161b22 !important;
-        color: #e6edf3 !important;
-        border-color: #8b949e !important;
-    }
 </style>
 <script>document.documentElement.lang = 'pt-BR';</script>
 """, unsafe_allow_html=True)
@@ -539,15 +552,15 @@ with st.sidebar:
     # Logo Prates no topo da sidebar
     if LOGO_URL:
         st.markdown(
-            f"<div style='text-align:center;padding:8px 0 6px'>"
-            f"<img src='{LOGO_URL}' style='width:42px;height:42px;border-radius:50%;"
-            f"object-fit:cover;border:2px solid #238636'>"
+            f"<div style='text-align:center;padding:14px 0 10px'>"
+            f"<img src='{LOGO_URL}' style='width:58px;height:58px;border-radius:50%;"
+            f"object-fit:cover;border:2px solid #238636;box-shadow:0 2px 8px rgba(35,134,54,.3)'>"
             f"</div>", unsafe_allow_html=True)
     else:
         st.markdown(
-            "<div style='text-align:center;padding:12px 0 8px'>"
-            "<div style='width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#238636,#2ea043);"
-            "display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto'>🛒</div>"
+            "<div style='text-align:center;padding:14px 0 10px'>"
+            "<div style='width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#238636,#2ea043);"
+            "display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto'>🛒</div>"
             "</div>", unsafe_allow_html=True)
 
     st.markdown(f"""
@@ -569,12 +582,12 @@ with st.sidebar:
         nav.append(("⚙️ Admin", "admin"))
 
     for label, page in nav:
-        if st.button(label, use_container_width=True, key=f"nav_{page}"):
+        if st.button(label, use_container_width=True, key=f"nav_{page}", type="primary"):
             st.session_state.pagina = page
             st.rerun()
 
     st.divider()
-    if st.button("🚪 Sair", use_container_width=True):
+    if st.button("🚪 Sair", use_container_width=True, type="primary"):
         st.session_state.usuario = None
         st.rerun()
 
@@ -583,14 +596,21 @@ with st.sidebar:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def pagina_dashboard():
-    # Data em português — CORRIGIDO
     agora = datetime.now()
-    st.markdown(
-        f"<div style='color:#8b949e;font-size:12px;margin-bottom:12px'>🕐 {data_pt(agora)}</div>",
-        unsafe_allow_html=True
-    )
-    st.markdown("<h2 style='font-size:20px;font-weight:700;color:#f0f6fc;margin-bottom:10px'>📊 Dashboard</h2>",
-                unsafe_allow_html=True)
+    if LOGO_URL:
+        st.markdown(
+            f"<div style='display:flex;align-items:center;gap:12px;margin-bottom:10px'>"
+            f"<img src='{LOGO_URL}' style='width:38px;height:38px;border-radius:50%;"
+            f"object-fit:cover;border:2px solid #238636'>"
+            f"<div><div style='font-size:20px;font-weight:700;color:#f0f6fc'>📊 Dashboard</div>"
+            f"<div style='color:#8b949e;font-size:11px'>🕐 {data_pt(agora)}</div></div>"
+            f"</div>", unsafe_allow_html=True)
+    else:
+        st.markdown(
+            f"<div style='margin-bottom:10px'>"
+            f"<div style='font-size:20px;font-weight:700;color:#f0f6fc'>📊 Dashboard</div>"
+            f"<div style='color:#8b949e;font-size:11px'>🕐 {data_pt(agora)}</div></div>",
+            unsafe_allow_html=True)
 
     @st.cache_data(ttl=300, show_spinner=False)
     def load_all_items():
@@ -753,9 +773,9 @@ def pagina_loja(loja: str):
     c1, c2, c3 = st.columns([3, 1, 1])
     busca = c1.text_input("", placeholder="Buscar produto, marca, SKU...",
                           label_visibility="collapsed", key=f"busc_{loja}")
-    if c2.button("+ Produto", use_container_width=True, key=f"btnp_{loja}"):
+    if c2.button("+ Produto", use_container_width=True, key=f"btnp_{loja}", type="primary"):
         st.session_state[f"cp_{loja}"] = not st.session_state.get(f"cp_{loja}", False)
-    if c3.button("Seções", use_container_width=True, key=f"btns_{loja}"):
+    if c3.button("Seções", use_container_width=True, key=f"btns_{loja}", type="primary"):
         st.session_state[f"gs_{loja}"] = not st.session_state.get(f"gs_{loja}", False)
 
     f1, f2 = st.columns(2)
