@@ -553,14 +553,14 @@ with st.sidebar:
     if LOGO_URL:
         st.markdown(
             f"<div style='text-align:center;padding:14px 0 10px'>"
-            f"<img src='{LOGO_URL}' style='width:72px;height:72px;border-radius:50%;"
+            f"<img src='{LOGO_URL}' style='width:90px;height:90px;border-radius:50%;"
             f"object-fit:cover;border:2px solid #238636;box-shadow:0 2px 8px rgba(35,134,54,.3)'>"
             f"</div>", unsafe_allow_html=True)
     else:
         st.markdown(
             "<div style='text-align:center;padding:14px 0 10px'>"
-            "<div style='width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#238636,#2ea043);"
-            "display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto'>🛒</div>"
+            "<div style='width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,#238636,#2ea043);"
+            "display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto'>🛒</div>"
             "</div>", unsafe_allow_html=True)
 
     st.markdown(f"""
