@@ -134,17 +134,21 @@ st.markdown("""
     [data-testid="stPopoverBody"] {padding: 4px !important; min-width: 140px !important}
     [data-testid="stPopoverBody"] .stButton>button {font-size: 10px !important; padding: 4px 6px !important; min-height: 0 !important; border-radius: 4px !important}
 
-    /* Botão discreto esqueci senha */
-    .btn-esqueci button {
+    /* Botão discreto esqueci senha — estilo link/secondary como na Sublimação */
+    .esqueci-wrap .stButton > button {
         background: transparent !important;
         color: #8b949e !important;
-        border: none !important;
-        font-size: 11px !important;
-        padding: 2px 0 !important;
-        text-decoration: underline !important;
+        border: 1px solid #30363d !important;
+        font-size: 12px !important;
+        font-weight: 400 !important;
         box-shadow: none !important;
+        padding: 6px 12px !important;
     }
-    .btn-esqueci button:hover { color: #58A6FF !important; background: transparent !important; }
+    .esqueci-wrap .stButton > button:hover {
+        background: #161b22 !important;
+        color: #e6edf3 !important;
+        border-color: #8b949e !important;
+    }
 </style>
 <script>document.documentElement.lang = 'pt-BR';</script>
 """, unsafe_allow_html=True)
@@ -505,11 +509,11 @@ if not st.session_state.usuario:
                 if st.form_submit_button("Entrar", use_container_width=True, type="primary"):
                     if do_login(em, se): st.rerun()
 
-        # Botão discreto Esqueci minha senha
-        st.markdown("<div class='btn-esqueci' style='text-align:center;margin-top:6px'>", unsafe_allow_html=True)
-        if st.button("🔑 Esqueci minha senha", key="btn_esqueci"):
+        # Botão discreto Esqueci minha senha — estilo secondary como na Sublimação
+        st.markdown('<div class="esqueci-wrap">', unsafe_allow_html=True)
+        if st.button("🔑 Esqueci minha senha", key="btn_esqueci", use_container_width=True):
             st.session_state["mostrar_esqueci"] = not st.session_state.get("mostrar_esqueci", False)
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
         if st.session_state.get("mostrar_esqueci"):
             with st.container(border=True):
@@ -535,8 +539,8 @@ with st.sidebar:
     # Logo Prates no topo da sidebar
     if LOGO_URL:
         st.markdown(
-            f"<div style='text-align:center;padding:12px 0 8px'>"
-            f"<img src='{LOGO_URL}' style='width:60px;height:60px;border-radius:50%;"
+            f"<div style='text-align:center;padding:8px 0 6px'>"
+            f"<img src='{LOGO_URL}' style='width:42px;height:42px;border-radius:50%;"
             f"object-fit:cover;border:2px solid #238636'>"
             f"</div>", unsafe_allow_html=True)
     else:
@@ -701,6 +705,44 @@ def pagina_dashboard():
             paper_bgcolor="#161b22", plot_bgcolor="#0d1117",
             font=dict(color="#8b949e", size=10), yaxis=dict(tickfont=dict(size=10)))
         st.plotly_chart(fig4, use_container_width=True)
+
+    # ── SEÇÃO: A COMPRAR POR LOJA ──────────────────────────────────────────────
+    st.divider()
+    st.markdown("<div class='text-muted' style='font-size:12px;margin:8px 0 10px'>🛒 A COMPRAR POR LOJA (Pendente + Aprovado)</div>",
+                unsafe_allow_html=True)
+    df_comprar = df[df["status"].isin(list(STATUS_AT))]
+    cc1, cc2 = st.columns(2)
+    for col, lj in [(cc1, "distribuidora"), (cc2, "sublimacao")]:
+        info_lj = LOJAS[lj]
+        cor      = info_lj["cor"]
+        lj_df    = df_comprar[df_comprar["loja"] == lj]
+        total_it = len(lj_df)
+        if not lj_df.empty:
+            secs_lj = lj_df.groupby("secao").agg(
+                itens=("id","count"),
+                pendentes=("status", lambda x: (x=="Pendente").sum()),
+                aprovados=("status", lambda x: (x=="Aprovado").sum())
+            ).reset_index().sort_values("itens", ascending=False)
+            linhas = "".join(
+                f"<div style='display:flex;justify-content:space-between;align-items:center;"
+                f"padding:5px 0;border-bottom:1px solid #21262d'>"
+                f"<span style='color:#e6edf3;font-size:12px'>{r['secao']}</span>"
+                f"<span style='font-size:11px'>"
+                f"<span style='color:#D2991E'>{r['pendentes']}⏳</span> "
+                f"<span style='color:#58A6FF'>{r['aprovados']}✓</span> "
+                f"<b style='color:{cor}'>{r['itens']} itens</b>"
+                f"</span></div>"
+                for _, r in secs_lj.iterrows()
+            )
+        else:
+            linhas = "<div style='color:#8b949e;font-size:12px;padding:8px 0;text-align:center'>Nenhum item pendente ✅</div>"
+
+        col.markdown(
+            f"<div class='kpi-card' style='border-top:3px solid {cor};text-align:left;padding:12px 14px'>"
+            f"<div style='font-size:13px;font-weight:700;color:{cor};margin-bottom:10px'>"
+            f"{info_lj['icone']} {info_lj['nome']} — <span style='font-size:16px'>{total_it}</span> a comprar"
+            f"</div>{linhas}</div>",
+            unsafe_allow_html=True)
 
 
 def pagina_loja(loja: str):
@@ -1050,6 +1092,8 @@ def pagina_historico():
     df["secao"]     = df["pc_secoes"].apply(lambda x: x["nome"] if x else "")
     df["total"]     = pd.to_numeric(df.get("total", 0), errors="coerce").fillna(0)
     df["fornecedor"]= df["fornecedor_id"].map({f["id"]:f["nome"] for f in get_fornecedores()}).fillna("")
+    # Data de movimentação: quando o status foi atualizado
+    df["data_mov"]  = pd.to_datetime(df.get("atualizado_em",""), errors="coerce").dt.strftime("%d/%m/%Y")
 
     if fl != "Todas":
         df = df[df["loja"] == ("distribuidora" if fl == "Distribuidora" else "sublimacao")]
@@ -1063,12 +1107,12 @@ def pagina_historico():
         f"</div>", unsafe_allow_html=True)
     st.dataframe(
         df[["produto","marca","sku","secao","loja","fornecedor",
-            "qtd","unidade","total","prioridade","status","dt_necessidade"]]
+            "qtd","unidade","total","prioridade","status","data_mov"]]
           .rename(columns={"produto":"Produto","marca":"Marca","sku":"SKU",
                            "secao":"Seção","loja":"Loja","fornecedor":"Fornecedor",
                            "qtd":"Qtd","unidade":"Unid","total":"Total",
                            "prioridade":"Prioridade","status":"Status",
-                           "dt_necessidade":"Data"}),
+                           "data_mov":"Data Mov."}),
         use_container_width=True, hide_index=True, height=400)
 
 
