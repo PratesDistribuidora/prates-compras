@@ -116,22 +116,27 @@ st.markdown("""
         border-color: #8b949e !important;
     }
 
-    /* ── CABEÇALHO FIXO DAS PÁGINAS INTERNAS ── */
-    /* Libera overflow apenas nos containers internos (não no stMain que é o scroll principal) */
-    [data-testid="block-container"],
-    [data-testid="stVerticalBlock"],
-    [data-testid="stVerticalBlockBorderWrapper"] {
-        overflow: visible !important;
-    }
+    /* ── CABEÇALHO FIXO DAS PÁGINAS INTERNAS — position:fixed é o único método confiável no Streamlit ── */
     .sticky-page-hdr {
-        position: -webkit-sticky;
-        position: sticky;
+        position: fixed !important;
         top: 2.875rem;
+        left: 21.125rem;   /* largura padrão da sidebar no Streamlit */
+        right: 0;
         z-index: 999;
         background: #0f1419;
-        padding: 10px 0 12px;
+        padding: 10px 1.5rem 12px;
         border-bottom: 1px solid #21262d;
-        margin-bottom: 14px;
+    }
+    /* Compensa o header fixo empurrando o conteúdo para baixo */
+    [data-testid="block-container"] {
+        padding-top: 3.8rem !important;
+    }
+    /* Mobile: sidebar some, cabeçalho ocupa largura total */
+    @media (max-width: 768px) {
+        .sticky-page-hdr { left: 0 !important; padding: 8px 1rem 10px !important; }
+        [data-testid="block-container"] { padding: 3.8rem 0.5rem 1rem !important; }
+        .kpi-val { font-size: 18px !important; }
+        button { min-height: 44px !important; }
     }
 
     /* ── SIDEBAR ── */
@@ -213,6 +218,41 @@ def data_pt(dt: datetime) -> str:
     dia_semana = DIAS_PT[dt.weekday()]
     mes        = MESES_PT[dt.month]
     return f"{dia_semana}, {dt.day:02d} de {mes} de {dt.year} {dt.hour:02d}:{dt.minute:02d}"
+
+# ── Favicon + PWA meta tags (injetados via JS pois Streamlit não expõe <head>) ──
+st.markdown(f"""
+<script>
+(function(){{
+  // Favicon — logo Prates na aba do navegador
+  var fav = document.querySelector("link[rel*='icon']") || document.createElement('link');
+  fav.rel  = 'icon'; fav.type = 'image/jpeg';
+  fav.href = '{LOGO_URL}';
+  if (!fav.parentNode) document.head.appendChild(fav);
+
+  // Apple touch icon — ícone ao salvar na tela inicial do iPhone/Android
+  var atf = document.querySelector("link[rel='apple-touch-icon']") || document.createElement('link');
+  atf.rel  = 'apple-touch-icon';
+  atf.href = '{LOGO_URL}';
+  if (!atf.parentNode) document.head.appendChild(atf);
+
+  // Meta tags PWA — abre como app no celular
+  var metas = [
+    ['mobile-web-app-capable',            'yes'],
+    ['apple-mobile-web-app-capable',      'yes'],
+    ['apple-mobile-web-app-status-bar-style', 'black-translucent'],
+    ['apple-mobile-web-app-title',        'Prates Compras'],
+    ['theme-color',                       '#0f1419'],
+    ['viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0']
+  ];
+  metas.forEach(function(m){{
+    var el = document.querySelector('meta[name="'+m[0]+'"]')
+          || document.createElement('meta');
+    el.name = m[0]; el.content = m[1];
+    if (!el.parentNode) document.head.appendChild(el);
+  }});
+}})();
+</script>
+""", unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SEGURANÇA — constantes
