@@ -419,11 +419,13 @@ def delete_secao(sid: int) -> bool:
 # CRUD — ITENS
 # ─────────────────────────────────────────────────────────────────────────────
 def _validate_item(data: dict) -> Optional[str]:
-    if not data.get("produto") or len(data["produto"]) > 150:
-        return "Nome do produto inválido."
-    if data.get("qtd", 0) < 0:
+    # Só valida campos que estão presentes (permite updates parciais como status)
+    if "produto" in data:
+        if not data.get("produto") or len(data["produto"]) > 150:
+            return "Nome do produto inválido."
+    if "qtd" in data and data.get("qtd", 0) < 0:
         return "Quantidade não pode ser negativa."
-    if data.get("preco_unit", 0) < 0:
+    if "preco_unit" in data and data.get("preco_unit", 0) < 0:
         return "Preço não pode ser negativo."
     return None
 
@@ -1149,8 +1151,12 @@ def pagina_loja(loja: str):
                                     lbl = f"✓ {sv}" if sv == cur else sv
                                     if st.button(lbl, key=f"st_{sv}_{iid}_{idx}",
                                                  use_container_width=True, type=tp):
-                                        update_item(iid, {"status": sv})
-                                        st.rerun()
+                                        err = update_item(iid, {"status": sv})
+                                        if err:
+                                            st.error(err)
+                                        else:
+                                            st.cache_data.clear()
+                                            st.rerun()
                                 st.divider()
                                 if st.button("✏️ Editar", key=f"edit_btn_{iid}", use_container_width=True):
                                     st.session_state[f"ed_{iid}"] = True
