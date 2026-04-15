@@ -117,11 +117,17 @@ st.markdown("""
     }
 
     /* ── CABEÇALHO FIXO DAS PÁGINAS INTERNAS ── */
+    /* Libera overflow nos containers do Streamlit para position:sticky funcionar */
+    [data-testid="stMain"],
+    [data-testid="block-container"],
+    [data-testid="stVerticalBlock"] {
+        overflow: visible !important;
+    }
     .sticky-page-hdr {
         position: -webkit-sticky;
         position: sticky;
         top: 2.875rem;
-        z-index: 200;
+        z-index: 999;
         background: #0f1419;
         padding: 10px 0 12px;
         border-bottom: 1px solid #21262d;
