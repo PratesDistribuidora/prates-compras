@@ -41,7 +41,19 @@ st.markdown("""
     .stButton>button:hover {background: #2ea043 !important}
 
     section[data-testid="stSidebar"] {background: #0d1117 !important; border-right: 1px solid #21262d !important; padding: 15px 10px !important}
-    section[data-testid="stSidebar"] .stButton button {text-align: left !important; justify-content: flex-start !important; width: 100% !important; padding: 8px 12px !important}
+    section[data-testid="stSidebar"] .stButton > button {
+        text-align: left !important;
+        justify-content: flex-start !important;
+        width: 100% !important;
+        padding: 8px 12px !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    section[data-testid="stSidebar"] .stButton > button p,
+    section[data-testid="stSidebar"] .stButton > button span {
+        text-align: left !important;
+        margin: 0 !important;
+    }
     .sidebar-header {text-align: center; padding: 15px 10px; margin-bottom: 15px; border-bottom: 1px solid #21262d}
     .sidebar-user {font-weight: 600; color: #f0f6fc; font-size: 13px; text-align: center}
     .sidebar-role {display: inline-block; background: #238636; color: #fff; font-size: 10px; padding: 2px 8px; border-radius: 10px; margin-top: 4px; font-weight: 600}
@@ -644,7 +656,7 @@ def pagina_loja(loja: str):
                 un   = r2[1].selectbox("Unid",      UNID)
                 prec = r2[2].number_input("Preço",  min_value=0.0, step=0.01, format="%.2f")
                 prio = r2[3].selectbox("Prioridade",PRIO, index=1)
-                dt   = r2[4].date_input("Necessidade", value=None)
+                dt   = r2[4].date_input("Necessidade", value=None, format="DD/MM/YYYY")
                 img  = r2[5].text_input("URL Img",  placeholder="https://...")
                 obs  = r2[6].text_input("Obs")
                 r2[7].markdown("<br>", unsafe_allow_html=True)
@@ -774,13 +786,11 @@ def pagina_loja(loja: str):
                                 st.caption("Acesso restrito.")
                             else:
                                 cur = item.get("status", "Pendente")
-                                sc1, sc2 = st.columns(2)
                                 for si, sv in enumerate(STATUS_ALL):
-                                    col = sc1 if si % 2 == 0 else sc2
                                     tp  = "primary" if sv == cur else "secondary"
                                     lbl = f"✓ {sv}" if sv == cur else sv
-                                    if col.button(lbl, key=f"st_{sv}_{iid}_{idx}",
-                                                  use_container_width=True, type=tp):
+                                    if st.button(lbl, key=f"st_{sv}_{iid}_{idx}",
+                                                 use_container_width=True, type=tp):
                                         update_item(iid, {"status": sv})
                                         st.rerun()
                                 st.divider()
@@ -800,77 +810,75 @@ def pagina_loja(loja: str):
                                     if st.button("🗑️ Excluir", key=f"del_btn_{iid}", use_container_width=True):
                                         st.session_state[f"conf_del_{iid}"] = True; st.rerun()
 
-                    # Painel de edição — CORRIGIDO: botões Salvar e Cancelar em colunas separadas
+                    # Painel de edição — largura total da tela
                     if st.session_state.get(f"ed_{iid}"):
-                        _, center, _ = st.columns([1, 2, 1])
-                        with center:
-                            st.markdown("<div class='edit-panel'>", unsafe_allow_html=True)
-                            st.markdown(f"<div style='font-weight:600;font-size:13px;"
-                                        f"color:#f0f6fc;margin-bottom:8px'>"
-                                        f"✏️ {item.get('produto','')}</div>", unsafe_allow_html=True)
+                        st.markdown("<div class='edit-panel'>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='font-weight:600;font-size:13px;"
+                                    f"color:#f0f6fc;margin-bottom:8px'>"
+                                    f"✏️ {item.get('produto','')}</div>", unsafe_allow_html=True)
 
-                            forns2  = get_fornecedores()
-                            fm3     = {f["nome"]: f["id"] for f in forns2}
-                            fopts2  = ["(Nenhum)"] + list(fm3.keys())
-                            fat     = "(Nenhum)"
-                            if item.get("fornecedor_id"):
-                                for f in forns2:
-                                    if f["id"] == item["fornecedor_id"]:
-                                        fat = f["nome"]; break
+                        forns2  = get_fornecedores()
+                        fm3     = {f["nome"]: f["id"] for f in forns2}
+                        fopts2  = ["(Nenhum)"] + list(fm3.keys())
+                        fat     = "(Nenhum)"
+                        if item.get("fornecedor_id"):
+                            for f in forns2:
+                                if f["id"] == item["fornecedor_id"]:
+                                    fat = f["nome"]; break
 
-                            with st.form(f"fedit_{iid}", border=False):
-                                re1 = st.columns([2, 2, 2, 1.5, 1.5, 2])
-                                ep   = re1[0].text_input("Produto", value=item.get("produto",""))
-                                em2  = re1[1].text_input("Marca",   value=item.get("marca","") or "")
-                                esk  = re1[2].text_input("SKU",     value=item.get("sku","") or "")
-                                ee   = re1[3].text_input("EAN",     value=item.get("ean","") or "")
-                                ef2  = re1[4].selectbox("Forn.", fopts2,
-                                                        index=fopts2.index(fat) if fat in fopts2 else 0)
-                                ei   = re1[5].text_input("Img URL", value=item.get("imagem_url","") or "")
+                        with st.form(f"fedit_{iid}", border=False):
+                            re1 = st.columns([2, 2, 2, 1.5, 1.5, 2])
+                            ep   = re1[0].text_input("Produto", value=item.get("produto",""))
+                            em2  = re1[1].text_input("Marca",   value=item.get("marca","") or "")
+                            esk  = re1[2].text_input("SKU",     value=item.get("sku","") or "")
+                            ee   = re1[3].text_input("EAN",     value=item.get("ean","") or "")
+                            ef2  = re1[4].selectbox("Forn.", fopts2,
+                                                    index=fopts2.index(fat) if fat in fopts2 else 0)
+                            ei   = re1[5].text_input("Img URL", value=item.get("imagem_url","") or "")
 
-                                re2  = st.columns([1, 1.5, 1.5, 1.5, 1.5, 1.5])
-                                eq   = re2[0].number_input("Qtd",   min_value=0.0,
-                                                            value=float(item.get("qtd",0)), step=1.0)
-                                eun  = re2[1].selectbox("Unid", UNID,
-                                                         index=UNID.index(item.get("unidade","UN"))
-                                                         if item.get("unidade","UN") in UNID else 0)
-                                epr  = re2[2].number_input("Preço", min_value=0.0,
-                                                            value=float(item.get("preco_unit",0)),
-                                                            step=0.01, format="%.2f")
-                                eprio = re2[3].selectbox("Prio", PRIO,
-                                                          index=PRIO.index(item.get("prioridade","Media"))
-                                                          if item.get("prioridade") in PRIO else 1)
-                                _dt_val = None
-                                try:
-                                    if item.get("dt_necessidade"):
-                                        _dt_val = date.fromisoformat(str(item["dt_necessidade"]))
-                                except: pass
-                                edt  = re2[4].date_input("Data", value=_dt_val)
-                                eobs = re2[5].text_input("Obs", value=item.get("obs","") or "")
+                            re2  = st.columns([1, 1.5, 1.5, 1.5, 1.5, 1.5])
+                            eq   = re2[0].number_input("Qtd",   min_value=0.0,
+                                                        value=float(item.get("qtd",0)), step=1.0)
+                            eun  = re2[1].selectbox("Unid", UNID,
+                                                     index=UNID.index(item.get("unidade","UN"))
+                                                     if item.get("unidade","UN") in UNID else 0)
+                            epr  = re2[2].number_input("Preço", min_value=0.0,
+                                                        value=float(item.get("preco_unit",0)),
+                                                        step=0.01, format="%.2f")
+                            eprio = re2[3].selectbox("Prio", PRIO,
+                                                      index=PRIO.index(item.get("prioridade","Media"))
+                                                      if item.get("prioridade") in PRIO else 1)
+                            _dt_val = None
+                            try:
+                                if item.get("dt_necessidade"):
+                                    _dt_val = date.fromisoformat(str(item["dt_necessidade"]))
+                            except: pass
+                            # Data em formato brasileiro — CORRIGIDO
+                            edt  = re2[4].date_input("Data", value=_dt_val, format="DD/MM/YYYY")
+                            eobs = re2[5].text_input("Obs", value=item.get("obs","") or "")
 
-                                # CORRIGIDO: Salvar e Cancelar em colunas separadas (mesmo form)
-                                btn1, btn2 = st.columns(2)
-                                saved = btn1.form_submit_button("💾 Salvar",
-                                                                type="primary", use_container_width=True)
-                                cancel = btn2.form_submit_button("✖ Cancelar", use_container_width=True)
+                            btn1, btn2 = st.columns(2)
+                            saved  = btn1.form_submit_button("💾 Salvar",
+                                                             type="primary", use_container_width=True)
+                            cancel = btn2.form_submit_button("✖ Cancelar", use_container_width=True)
 
-                                if cancel:
+                            if cancel:
+                                st.session_state[f"ed_{iid}"] = False; st.rerun()
+                            if saved:
+                                err = update_item(iid, {
+                                    "produto": ep, "marca": em2, "sku": esk, "ean": ee,
+                                    "fornecedor_id": fm3.get(ef2) if ef2 != "(Nenhum)" else None,
+                                    "imagem_url": ei or None,
+                                    "qtd": eq, "unidade": eun, "preco_unit": epr,
+                                    "total": round(eq * epr, 2), "prioridade": eprio,
+                                    "dt_necessidade": str(edt) if edt else None,
+                                    "obs": eobs
+                                })
+                                if err:
+                                    st.error(err)
+                                else:
                                     st.session_state[f"ed_{iid}"] = False; st.rerun()
-                                if saved:
-                                    err = update_item(iid, {
-                                        "produto": ep, "marca": em2, "sku": esk, "ean": ee,
-                                        "fornecedor_id": fm3.get(ef2) if ef2 != "(Nenhum)" else None,
-                                        "imagem_url": ei or None,
-                                        "qtd": eq, "unidade": eun, "preco_unit": epr,
-                                        "total": round(eq * epr, 2), "prioridade": eprio,
-                                        "dt_necessidade": str(edt) if edt else None,
-                                        "obs": eobs
-                                    })
-                                    if err:
-                                        st.error(err)
-                                    else:
-                                        st.session_state[f"ed_{iid}"] = False; st.rerun()
-                            st.markdown("</div>", unsafe_allow_html=True)
+                        st.markdown("</div>", unsafe_allow_html=True)
             else:
                 if not (busca or fst != "Todos" or fpr != "Todas"):
                     st.markdown("<span class='text-muted' style='font-size:12px'>"
