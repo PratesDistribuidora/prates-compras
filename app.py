@@ -382,38 +382,9 @@ def is_op() -> bool:
 # ─────────────────────────────────────────────────────────────────────────────
 # SESSION STATE
 # ─────────────────────────────────────────────────────────────────────────────
-for k, v in [("usuario", None), ("pagina", "dashboard"), ("site_ok", False)]:
+for k, v in [("usuario", None), ("pagina", "dashboard")]:
     if k not in st.session_state:
         st.session_state[k] = v
-
-# ─────────────────────────────────────────────────────────────────────────────
-# PORTÃO SITE_CODE  ← IMPLEMENTADO (estava faltando)
-# ─────────────────────────────────────────────────────────────────────────────
-if not st.session_state.site_ok:
-    _, c, _ = st.columns([1, 0.8, 1])
-    with c:
-        st.markdown("""
-        <div class="login-box">
-            <div class="login-header">
-                <div class="login-logo">🔑</div>
-                <div class="login-title">Acesso Restrito</div>
-                <div class="login-sub">Digite o código de acesso do site</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        with st.form("site_form"):
-            codigo = st.text_input("Código", type="password",
-                                   placeholder="Digite o código (sem aspas)",
-                                   label_visibility="collapsed")
-            if st.form_submit_button("Acessar", use_container_width=True, type="primary"):
-                if codigo == st.secrets.get("SITE_CODE", ""):
-                    st.session_state.site_ok = True
-                    st.rerun()
-                else:
-                    st.error("Código incorreto.", icon="🔒")
-        st.markdown("<div style='text-align:center;margin-top:20px;color:#8b949e;font-size:11px'>© 2026 Prates</div>",
-                    unsafe_allow_html=True)
-    st.stop()
 
 # ─────────────────────────────────────────────────────────────────────────────
 # LOGIN
@@ -443,42 +414,44 @@ def do_login(email: str, senha: str) -> bool:
         st.error("Erro interno. Tente novamente.", icon="❌"); return False
 
 if not st.session_state.usuario:
-    _, c, _ = st.columns([1, 0.9, 1])
+    _, c, _ = st.columns([1.2, 0.6, 1.2])
     with c:
-        # Logo acima do card (estilo Sublimação)
-        if LOGO_URL:
-            st.markdown(
-                f"<div style='text-align:center;margin-bottom:16px'>"
-                f"<img src='{LOGO_URL}' style='width:90px;height:90px;border-radius:50%;"
-                f"object-fit:cover;border:3px solid #238636;box-shadow:0 4px 16px rgba(35,134,54,.4)'>"
-                f"</div>", unsafe_allow_html=True)
-        else:
+        # Card compacto com logo DENTRO
+        with st.container(border=True):
+            # Logo dentro do card, centralizado no topo
+            if LOGO_URL:
+                st.markdown(
+                    f"<div style='text-align:center;margin:8px 0 12px'>"
+                    f"<img src='{LOGO_URL}' style='width:70px;height:70px;border-radius:50%;"
+                    f"object-fit:cover;border:3px solid #238636;box-shadow:0 4px 12px rgba(35,134,54,.4)'>"
+                    f"</div>", unsafe_allow_html=True)
+            else:
+                st.markdown(
+                    "<div style='text-align:center;margin:8px 0 12px'>"
+                    "<div style='width:70px;height:70px;border-radius:50%;"
+                    "background:linear-gradient(135deg,#238636,#2ea043);"
+                    "display:flex;align-items:center;justify-content:center;"
+                    "font-size:28px;margin:0 auto;box-shadow:0 4px 12px rgba(35,134,54,.4)'>🛒</div>"
+                    "</div>", unsafe_allow_html=True)
+
             st.markdown(
                 "<div style='text-align:center;margin-bottom:16px'>"
-                "<div style='width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,#238636,#2ea043);"
-                "display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto;"
-                "box-shadow:0 4px 16px rgba(35,134,54,.4)'>🛒</div>"
+                "<div style='font-size:17px;font-weight:700;color:#f0f6fc'>Prates Compras</div>"
+                "<div style='font-size:11px;color:#8b949e;margin-top:3px'>Faça login para continuar</div>"
                 "</div>", unsafe_allow_html=True)
 
-        # Card de login
-        with st.container(border=True):
-            st.markdown(
-                "<div style='text-align:center;margin-bottom:20px'>"
-                "<div style='font-size:20px;font-weight:700;color:#f0f6fc'>Prates Compras</div>"
-                "<div style='font-size:12px;color:#8b949e;margin-top:4px'>Faça login para continuar</div>"
-                "</div>", unsafe_allow_html=True)
             with st.form("login_form"):
-                st.markdown("<div style='font-size:13px;color:#8b949e;margin-bottom:4px'>E-mail</div>",
+                st.markdown("<div style='font-size:12px;color:#8b949e;margin-bottom:3px'>E-mail</div>",
                             unsafe_allow_html=True)
                 em = st.text_input("E-mail", placeholder="seu@email.com", label_visibility="collapsed")
-                st.markdown("<div style='font-size:13px;color:#8b949e;margin-bottom:4px'>Senha</div>",
+                st.markdown("<div style='font-size:12px;color:#8b949e;margin-bottom:3px;margin-top:6px'>Senha</div>",
                             unsafe_allow_html=True)
                 se = st.text_input("Senha", type="password", placeholder="••••••••", label_visibility="collapsed")
-                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown("<div style='margin-top:8px'></div>", unsafe_allow_html=True)
                 if st.form_submit_button("Entrar", use_container_width=True, type="primary"):
                     if do_login(em, se): st.rerun()
 
-        st.markdown("<div style='text-align:center;margin-top:16px;color:#8b949e;font-size:11px'>"
+        st.markdown("<div style='text-align:center;margin-top:10px;color:#8b949e;font-size:10px'>"
                     "Prates Compras · Macaé/RJ</div>", unsafe_allow_html=True)
     st.stop()
 
@@ -530,8 +503,7 @@ with st.sidebar:
 
     st.divider()
     if st.button("🚪 Sair", use_container_width=True):
-        st.session_state.usuario  = None
-        st.session_state.site_ok  = False
+        st.session_state.usuario = None
         st.rerun()
 
 # ─────────────────────────────────────────────────────────────────────────────
