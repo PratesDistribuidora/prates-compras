@@ -553,14 +553,14 @@ with st.sidebar:
     if LOGO_URL:
         st.markdown(
             f"<div style='text-align:center;padding:14px 0 10px'>"
-            f"<img src='{LOGO_URL}' style='width:58px;height:58px;border-radius:50%;"
+            f"<img src='{LOGO_URL}' style='width:72px;height:72px;border-radius:50%;"
             f"object-fit:cover;border:2px solid #238636;box-shadow:0 2px 8px rgba(35,134,54,.3)'>"
             f"</div>", unsafe_allow_html=True)
     else:
         st.markdown(
             "<div style='text-align:center;padding:14px 0 10px'>"
-            "<div style='width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#238636,#2ea043);"
-            "display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto'>🛒</div>"
+            "<div style='width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#238636,#2ea043);"
+            "display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto'>🛒</div>"
             "</div>", unsafe_allow_html=True)
 
     st.markdown(f"""
@@ -665,6 +665,30 @@ def pagina_dashboard():
             f"<div class='kpi-card' style='border-top:3px solid {cor}'>"
             f"<div class='kpi-lbl'>{lbl}</div>"
             f"<div class='kpi-val' style='color:{cor}'>{val}</div></div>",
+            unsafe_allow_html=True)
+
+    # ── LINHA 3: Total cadastrado por loja ─────────────────────────────────────
+    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+    cols3 = st.columns(2)
+    for ci, (lj, info_lj) in enumerate(LOJAS.items()):
+        lj_df   = df[df["loja"] == lj]
+        total_c = len(lj_df)
+        pend_c  = (lj_df["status"] == "Pendente").sum()
+        aprov_c = (lj_df["status"] == "Aprovado").sum()
+        comp_c  = (lj_df["status"] == "Comprado").sum()
+        entr_c  = (lj_df["status"] == "Entregue").sum()
+        cols3[ci].markdown(
+            f"<div class='kpi-card' style='border-top:3px solid {info_lj['cor']};text-align:left;padding:12px 16px'>"
+            f"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px'>"
+            f"<span style='font-size:13px;font-weight:700;color:{info_lj['cor']}'>"
+            f"{info_lj['icone']} {info_lj['nome']}</span>"
+            f"<span style='font-size:22px;font-weight:700;color:{info_lj['cor']}'>{total_c}</span></div>"
+            f"<div style='display:flex;gap:12px;flex-wrap:wrap'>"
+            f"<span style='font-size:11px;color:#D2991E'>⏳ {pend_c} pendentes</span>"
+            f"<span style='font-size:11px;color:#58A6FF'>✓ {aprov_c} aprovados</span>"
+            f"<span style='font-size:11px;color:#A371F7'>🛒 {comp_c} comprados</span>"
+            f"<span style='font-size:11px;color:#3FB950'>✅ {entr_c} entregues</span>"
+            f"</div></div>",
             unsafe_allow_html=True)
 
     st.divider()
