@@ -98,6 +98,11 @@ st.markdown("""
 # ─────────────────────────────────────────────────────────────────────────────
 # CONSTANTS
 # ─────────────────────────────────────────────────────────────────────────────
+
+# ── LOGO: cole aqui a URL pública do logo Prates (PNG/JPG) ───────────────────
+LOGO_URL = ""   # Ex: "https://i.imgur.com/seulogo.png"
+# ─────────────────────────────────────────────────────────────────────────────
+
 LOJAS = {
     "distribuidora": {"nome": "Prates Distribuidora", "cor": "#58A6FF", "icone": "📦"},
     "sublimacao":    {"nome": "Prates Sublimação",    "cor": "#3FB950", "icone": "🎨"}
@@ -245,6 +250,28 @@ def get_itens_secao(sid: int, status_filter: Optional[tuple] = None) -> List[dic
     except Exception as e:
         logger.error(f"Erro ao buscar itens da seção {sid}: {e}")
         return []
+
+@st.cache_data(ttl=60)
+def get_itens_por_secoes(secao_ids: tuple, status_filter: Optional[tuple] = None) -> dict:
+    """
+    PERFORMANCE: carrega TODOS os itens de uma loja em UMA única query,
+    retorna dict {secao_id: [itens]} em vez de fazer N queries.
+    """
+    if not secao_ids:
+        return {}
+    try:
+        q = sb.table("pc_itens").select("*").in_("secao_id", list(secao_ids))
+        if status_filter:
+            q = q.in_("status", list(status_filter))
+        itens = q.order("secao_id,criado_em").execute().data or []
+        resultado: dict = {sid: [] for sid in secao_ids}
+        for item in itens:
+            sid = item.get("secao_id")
+            if sid in resultado:
+                resultado[sid].append(item)
+        return resultado
+    except Exception as e:
+        logger.error(f"Erro itens por seções: {e}"); return {}
 
 def create_item(sid: int, d: dict, user: str) -> Optional[str]:
     err = _validate_item(d)
@@ -416,24 +443,43 @@ def do_login(email: str, senha: str) -> bool:
         st.error("Erro interno. Tente novamente.", icon="❌"); return False
 
 if not st.session_state.usuario:
-    _, c, _ = st.columns([1, 0.8, 1])
+    _, c, _ = st.columns([1, 0.9, 1])
     with c:
-        st.markdown("""
-        <div class="login-box">
-            <div class="login-header">
-                <div class="login-logo">🛒</div>
-                <div class="login-title">Prates Compras</div>
-                <div class="login-sub">Sistema de Gestão</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        with st.form("login_form"):
-            em = st.text_input("Email", placeholder="seu@email.com", label_visibility="collapsed")
-            se = st.text_input("Senha", type="password", placeholder="Digite sua senha", label_visibility="collapsed")
-            if st.form_submit_button("Entrar", use_container_width=True, type="primary"):
-                if do_login(em, se): st.rerun()
-        st.markdown("<div style='text-align:center;margin-top:20px;color:#8b949e;font-size:11px'>© 2026 Prates</div>",
-                    unsafe_allow_html=True)
+        # Logo acima do card (estilo Sublimação)
+        if LOGO_URL:
+            st.markdown(
+                f"<div style='text-align:center;margin-bottom:16px'>"
+                f"<img src='{LOGO_URL}' style='width:90px;height:90px;border-radius:50%;"
+                f"object-fit:cover;border:3px solid #238636;box-shadow:0 4px 16px rgba(35,134,54,.4)'>"
+                f"</div>", unsafe_allow_html=True)
+        else:
+            st.markdown(
+                "<div style='text-align:center;margin-bottom:16px'>"
+                "<div style='width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,#238636,#2ea043);"
+                "display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto;"
+                "box-shadow:0 4px 16px rgba(35,134,54,.4)'>🛒</div>"
+                "</div>", unsafe_allow_html=True)
+
+        # Card de login
+        with st.container(border=True):
+            st.markdown(
+                "<div style='text-align:center;margin-bottom:20px'>"
+                "<div style='font-size:20px;font-weight:700;color:#f0f6fc'>Prates Compras</div>"
+                "<div style='font-size:12px;color:#8b949e;margin-top:4px'>Faça login para continuar</div>"
+                "</div>", unsafe_allow_html=True)
+            with st.form("login_form"):
+                st.markdown("<div style='font-size:13px;color:#8b949e;margin-bottom:4px'>E-mail</div>",
+                            unsafe_allow_html=True)
+                em = st.text_input("E-mail", placeholder="seu@email.com", label_visibility="collapsed")
+                st.markdown("<div style='font-size:13px;color:#8b949e;margin-bottom:4px'>Senha</div>",
+                            unsafe_allow_html=True)
+                se = st.text_input("Senha", type="password", placeholder="••••••••", label_visibility="collapsed")
+                st.markdown("<br>", unsafe_allow_html=True)
+                if st.form_submit_button("Entrar", use_container_width=True, type="primary"):
+                    if do_login(em, se): st.rerun()
+
+        st.markdown("<div style='text-align:center;margin-top:16px;color:#8b949e;font-size:11px'>"
+                    "Prates Compras · Macaé/RJ</div>", unsafe_allow_html=True)
     st.stop()
 
 # Verificar timeout — CORRIGIDO: usa total_seconds()
@@ -445,6 +491,20 @@ u = st.session_state.usuario
 # SIDEBAR
 # ─────────────────────────────────────────────────────────────────────────────
 with st.sidebar:
+    # Logo Prates no topo da sidebar
+    if LOGO_URL:
+        st.markdown(
+            f"<div style='text-align:center;padding:12px 0 8px'>"
+            f"<img src='{LOGO_URL}' style='width:60px;height:60px;border-radius:50%;"
+            f"object-fit:cover;border:2px solid #238636'>"
+            f"</div>", unsafe_allow_html=True)
+    else:
+        st.markdown(
+            "<div style='text-align:center;padding:12px 0 8px'>"
+            "<div style='width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#238636,#2ea043);"
+            "display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto'>🛒</div>"
+            "</div>", unsafe_allow_html=True)
+
     st.markdown(f"""
     <div class="sidebar-header">
         <div class="sidebar-user">👤 {u['nome']}</div>
@@ -702,10 +762,18 @@ def pagina_loja(loja: str):
                         st.warning("Informe o nome do produto.")
         st.divider()
 
-    # Seções e Itens
+    # Seções e Itens — PERFORMANCE: 1 query para toda a loja
     secoes     = get_secoes(loja)
     total_loja = 0.0
-    fmc        = {f["id"]: f["nome"] for f in get_fornecedores()}
+    # Carrega fornecedores e itens UMA VEZ (não dentro do loop)
+    todos_forns = get_fornecedores()
+    fmc         = {f["id"]: f["nome"] for f in todos_forns}
+    fmc_nome    = {f["nome"]: f["id"] for f in todos_forns}
+    fmc_opts    = ["(Nenhum)"] + [f["nome"] for f in todos_forns]
+    secao_ids   = tuple(s["id"] for s in secoes)
+    # Uma única query traz todos os itens de todas as seções
+    mapa_itens  = get_itens_por_secoes(secao_ids, STATUS_AT)
+
     sel_key    = f"sel_{loja}"
     if sel_key not in st.session_state:
         st.session_state[sel_key] = []
@@ -733,7 +801,7 @@ def pagina_loja(loja: str):
         st.divider()
 
     for sec in secoes:
-        itens_all = get_itens_secao(sec["id"], STATUS_AT)   # STATUS_AT já é tuple
+        itens_all = mapa_itens.get(sec["id"], [])
 
         itens = itens_all[:]
         if fst != "Todos":  itens = [i for i in itens if i.get("status") == fst]
@@ -835,24 +903,20 @@ def pagina_loja(loja: str):
                                     f"color:#f0f6fc;margin-bottom:8px'>"
                                     f"✏️ {item.get('produto','')}</div>", unsafe_allow_html=True)
 
-                        forns2  = get_fornecedores()
-                        fm3     = {f["nome"]: f["id"] for f in forns2}
-                        fopts2  = ["(Nenhum)"] + list(fm3.keys())
-                        fat     = "(Nenhum)"
+                        # Usa fmc_opts/fmc_nome já carregados fora do loop (sem nova query)
+                        fat = "(Nenhum)"
                         if item.get("fornecedor_id"):
-                            for f in forns2:
-                                if f["id"] == item["fornecedor_id"]:
-                                    fat = f["nome"]; break
+                            fat = fmc.get(item["fornecedor_id"], "(Nenhum)")
 
                         with st.form(f"fedit_{iid}", border=False):
                             re1 = st.columns([2, 2, 2, 1.5, 1.5, 2])
-                            ep   = re1[0].text_input("Produto", value=item.get("produto",""))
-                            em2  = re1[1].text_input("Marca",   value=item.get("marca","") or "")
-                            esk  = re1[2].text_input("SKU",     value=item.get("sku","") or "")
-                            ee   = re1[3].text_input("EAN",     value=item.get("ean","") or "")
-                            ef2  = re1[4].selectbox("Forn.", fopts2,
-                                                    index=fopts2.index(fat) if fat in fopts2 else 0)
-                            ei   = re1[5].text_input("Img URL", value=item.get("imagem_url","") or "")
+                            ep   = re1[0].text_input("Produto",    value=item.get("produto",""))
+                            em2  = re1[1].text_input("Marca",      value=item.get("marca","") or "")
+                            esk  = re1[2].text_input("SKU",        value=item.get("sku","") or "")
+                            ee   = re1[3].text_input("EAN",        value=item.get("ean","") or "")
+                            ef2  = re1[4].selectbox("Fornecedor",  fmc_opts,
+                                                    index=fmc_opts.index(fat) if fat in fmc_opts else 0)
+                            ei   = re1[5].text_input("Img URL",    value=item.get("imagem_url","") or "")
 
                             re2  = st.columns([1, 1.5, 1.5, 1.5, 1.5, 1.5])
                             eq   = re2[0].number_input("Qtd",   min_value=0.0,
@@ -863,7 +927,7 @@ def pagina_loja(loja: str):
                             epr  = re2[2].number_input("Preço", min_value=0.0,
                                                         value=float(item.get("preco_unit",0)),
                                                         step=0.01, format="%.2f")
-                            eprio = re2[3].selectbox("Prio", PRIO,
+                            eprio = re2[3].selectbox("Prioridade", PRIO,
                                                       index=PRIO.index(item.get("prioridade","Media"))
                                                       if item.get("prioridade") in PRIO else 1)
                             _dt_val = ""
@@ -893,7 +957,7 @@ def pagina_loja(loja: str):
                                         st.warning("Data inválida. Use DD/MM/AAAA.")
                                 err = update_item(iid, {
                                     "produto": ep, "marca": em2, "sku": esk, "ean": ee,
-                                    "fornecedor_id": fm3.get(ef2) if ef2 != "(Nenhum)" else None,
+                                    "fornecedor_id": fmc_nome.get(ef2) if ef2 != "(Nenhum)" else None,
                                     "imagem_url": ei or None,
                                     "qtd": eq, "unidade": eun, "preco_unit": epr,
                                     "total": round(eq * epr, 2), "prioridade": eprio,
