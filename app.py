@@ -116,6 +116,18 @@ st.markdown("""
         border-color: #8b949e !important;
     }
 
+    /* ── CABEÇALHO FIXO DAS PÁGINAS INTERNAS ── */
+    .sticky-page-hdr {
+        position: -webkit-sticky;
+        position: sticky;
+        top: 2.875rem;
+        z-index: 200;
+        background: #0f1419;
+        padding: 10px 0 12px;
+        border-bottom: 1px solid #21262d;
+        margin-bottom: 14px;
+    }
+
     /* ── SIDEBAR ── */
     section[data-testid="stSidebar"] {background: #0d1117 !important; border-right: 1px solid #21262d !important; padding: 15px 10px !important}
     section[data-testid="stSidebar"] button {
@@ -197,7 +209,12 @@ def data_pt(dt: datetime) -> str:
     return f"{dia_semana}, {dt.day:02d} de {mes} de {dt.year} {dt.hour:02d}:{dt.minute:02d}"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# DATABASE
+# SEGURANÇA — constantes
+# ─────────────────────────────────────────────────────────────────────────────
+ADMIN_EMAIL      = "lojasprates@hotmail.com"   # centralizado, nunca repetir no código
+MAX_TENTATIVAS   = 5                            # tentativas antes de bloquear
+BLOQUEIO_MIN     = 10                           # minutos de bloqueio
+SENHA_MIN_CHARS  = 8
 # ─────────────────────────────────────────────────────────────────────────────
 @st.cache_resource
 def get_sb():
@@ -211,26 +228,82 @@ def get_sb():
 sb = get_sb()
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SEGURANÇA
+# SEGURANÇA — funções
 # ─────────────────────────────────────────────────────────────────────────────
 def hash_pwd(p: str) -> str:
     return bcrypt.hashpw(p.encode(), bcrypt.gensalt()).decode()
 
 def verify_pwd(p: str, h: str) -> bool:
+    try: return bcrypt.checkpw(p.encode(), h.encode())
+    except: return False
+
+def validar_senha_forte(senha: str) -> Optional[str]:
+    """Retorna mensagem de erro ou None se válida."""
+    if len(senha) < SENHA_MIN_CHARS:
+        return f"Senha deve ter no mínimo {SENHA_MIN_CHARS} caracteres."
+    if not any(c.isdigit() for c in senha):
+        return "Senha deve conter pelo menos 1 número."
+    return None
+
+def verificar_bloqueio(email: str) -> bool:
+    """Retorna True se a conta está bloqueada (mostra mensagem de erro)."""
+    lock_key = f"lock_{email}"
+    if lock_key in st.session_state:
+        locked_at = st.session_state[lock_key]
+        elapsed   = (datetime.now() - locked_at).total_seconds()
+        if elapsed < BLOQUEIO_MIN * 60:
+            restam = BLOQUEIO_MIN - int(elapsed / 60)
+            st.error(f"🔒 Muitas tentativas. Tente novamente em {restam} minuto(s).", icon="🔒")
+            return True
+        else:
+            del st.session_state[lock_key]
+            st.session_state.pop(f"tent_{email}", None)
+    return False
+
+def registrar_tentativa_falha(email: str):
+    key = f"tent_{email}"
+    st.session_state[key] = st.session_state.get(key, 0) + 1
+    if st.session_state[key] >= MAX_TENTATIVAS:
+        st.session_state[f"lock_{email}"] = datetime.now()
+        logger.warning(f"BLOQUEIO: {email} após {MAX_TENTATIVAS} tentativas")
+
+def limpar_tentativas(email: str):
+    st.session_state.pop(f"tent_{email}", None)
+    st.session_state.pop(f"lock_{email}", None)
+
+def log_audit(acao: str, tabela: str, registro_id: Any = None, detalhes: str = ""):
+    """Grava na tabela pc_auditoria (crie-a no Supabase). Falha silenciosamente."""
+    user = st.session_state.get("usuario", {})
+    nome = user.get("nome", "sistema") if user else "sistema"
+    logger.info(f"AUDIT | {nome} | {acao} | {tabela} | id={registro_id} | {detalhes}")
     try:
-        return bcrypt.checkpw(p.encode(), h.encode())
+        sb.table("pc_auditoria").insert({
+            "usuario":     nome,
+            "acao":        acao,
+            "tabela":      tabela,
+            "registro_id": registro_id,
+            "detalhes":    detalhes,
+            "criado_em":   datetime.now().isoformat()
+        }).execute()
     except:
-        return False
+        pass  # tabela pode não existir ainda — não impede o funcionamento
 
 def check_session_timeout():
-    """Verifica se a sessão expirou (30 minutos). CORRIGIDO: usa total_seconds()."""
     if "last_activity" in st.session_state:
-        elapsed = (datetime.now() - st.session_state.last_activity).total_seconds()
-        if elapsed > 1800:
+        if (datetime.now() - st.session_state.last_activity).total_seconds() > 1800:
             st.session_state.clear()
             st.warning("Sessão expirada. Faça login novamente.")
             st.rerun()
     st.session_state.last_activity = datetime.now()
+
+def sticky_header(titulo: str):
+    """Cabeçalho fixo para páginas internas (não Dashboard)."""
+    st.markdown(
+        f"<div class='sticky-page-hdr'>"
+        f"<span style='font-size:18px;font-weight:700;color:#f0f6fc'>{titulo}</span>"
+        f"</div>",
+        unsafe_allow_html=True
+    )
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CRUD — FORNECEDORES
@@ -362,16 +435,33 @@ def update_item(iid: int, d: dict) -> Optional[str]:
     try:
         d["atualizado_em"] = datetime.now().isoformat()
         sb.table("pc_itens").update(d).eq("id", iid).execute()
-        st.cache_data.clear(); return None
+        st.cache_data.clear()
+        if "status" in d:
+            log_audit("STATUS", "pc_itens", iid, d["status"])
+        return None
     except Exception as e:
         logger.error(f"Erro atualizar item: {e}"); return "Erro ao atualizar."
 
 def delete_item(iid: int) -> bool:
+    """Soft delete: move para Cancelado com nota de exclusão. Dados preservados no Histórico."""
+    user = st.session_state.get("usuario", {})
+    nome = user.get("nome", "?") if user else "?"
+    nota = f"[EXCLUÍDO por {nome} em {datetime.now().strftime('%d/%m/%Y %H:%M')}]"
     try:
-        sb.table("pc_itens").delete().eq("id", iid).execute()
-        st.cache_data.clear(); return True
+        # Busca obs atual para não apagar
+        atual = sb.table("pc_itens").select("obs,produto").eq("id", iid).execute().data
+        obs_ant = (atual[0].get("obs") or "") if atual else ""
+        produto  = (atual[0].get("produto") or "") if atual else str(iid)
+        sb.table("pc_itens").update({
+            "status":       "Cancelado",
+            "obs":          f"{nota} {obs_ant}".strip(),
+            "atualizado_em": datetime.now().isoformat()
+        }).eq("id", iid).execute()
+        st.cache_data.clear()
+        log_audit("EXCLUIR", "pc_itens", iid, produto)
+        return True
     except Exception as e:
-        logger.error(f"Erro deletar item: {e}"); return False
+        logger.error(f"Erro soft-delete item {iid}: {e}"); return False
 
 def batch_update_status(ids: List[int], new_status: str) -> bool:
     if not ids: return False
@@ -380,7 +470,9 @@ def batch_update_status(ids: List[int], new_status: str) -> bool:
             sb.table("pc_itens").update(
                 {"status": new_status, "atualizado_em": datetime.now().isoformat()}
             ).eq("id", iid).execute()
-        st.cache_data.clear(); return True
+        st.cache_data.clear()
+        log_audit("BATCH_STATUS", "pc_itens", None, f"{new_status} | ids={ids}")
+        return True
     except Exception as e:
         logger.error(f"Erro batch: {e}"); return False
 
@@ -464,22 +556,30 @@ def do_login(email: str, senha: str) -> bool:
     email = email.strip().lower()
     if not email or not senha:
         st.warning("Preencha email e senha.", icon="⚠️"); return False
+    if verificar_bloqueio(email): return False
     try:
         r = sb.table("pc_usuarios").select("*").eq("email", email).eq("ativo", True).execute()
         if not r.data:
-            logger.warning(f"Login falho: {email}")
+            registrar_tentativa_falha(email)
             st.error("Email ou senha incorretos.", icon="🔒"); return False
         u = r.data[0]
+        ok = False
         if u["senha_hash"].startswith("$2b$"):
-            if not verify_pwd(senha, u["senha_hash"]):
-                st.error("Email ou senha incorretos.", icon="🔒"); return False
+            ok = verify_pwd(senha, u["senha_hash"])
         else:
-            if hashlib.sha256(senha.encode()).hexdigest() != u["senha_hash"]:
-                st.error("Email ou senha incorretos.", icon="🔒"); return False
-            # Migra hash para bcrypt
-            sb.table("pc_usuarios").update({"senha_hash": hash_pwd(senha)}).eq("id", u["id"]).execute()
+            if hashlib.sha256(senha.encode()).hexdigest() == u["senha_hash"]:
+                sb.table("pc_usuarios").update({"senha_hash": hash_pwd(senha)}).eq("id", u["id"]).execute()
+                ok = True
+        if not ok:
+            registrar_tentativa_falha(email)
+            tent = st.session_state.get(f"tent_{email}", 0)
+            restam = max(0, MAX_TENTATIVAS - tent)
+            st.error(f"Email ou senha incorretos. {restam} tentativa(s) restante(s).", icon="🔒")
+            return False
+        limpar_tentativas(email)
         st.session_state.usuario = u
-        logger.info(f"Login: {email}"); return True
+        log_audit("LOGIN", "pc_usuarios", u["id"], email)
+        logger.info(f"Login OK: {email}"); return True
     except Exception as e:
         logger.error(f"Erro login: {e}")
         st.error("Erro interno. Tente novamente.", icon="❌"); return False
@@ -530,11 +630,12 @@ if not st.session_state.usuario:
 
         if st.session_state.get("mostrar_esqueci"):
             with st.container(border=True):
-                st.markdown("<div style='font-size:12px;color:#8b949e;text-align:center'>"
-                            "📧 Entre em contato com o administrador:<br>"
-                            "<b style='color:#58A6FF'>lojasprates@hotmail.com</b><br>"
-                            "<span style='font-size:11px'>Solicite a redefinição da sua senha.</span>"
-                            "</div>", unsafe_allow_html=True)
+                st.markdown(
+                    f"<div style='font-size:12px;color:#8b949e;text-align:center'>"
+                    f"📧 Entre em contato com o administrador:<br>"
+                    f"<b style='color:#58A6FF'>{ADMIN_EMAIL}</b><br>"
+                    f"<span style='font-size:11px'>Solicite a redefinição da sua senha.</span>"
+                    f"</div>", unsafe_allow_html=True)
 
         st.markdown("<div style='text-align:center;margin-top:10px;color:#8b949e;font-size:10px'>"
                     "Prates Compras · Macaé/RJ</div>", unsafe_allow_html=True)
@@ -791,8 +892,7 @@ def pagina_dashboard():
 
 def pagina_loja(loja: str):
     info = LOJAS[loja]
-    st.markdown(f"<h2 style='font-size:18px;font-weight:700;color:#f0f6fc;margin-bottom:12px'>"
-                f"{info['icone']} {info['nome']}</h2>", unsafe_allow_html=True)
+    sticky_header(f"{info['icone']} {info['nome']}")
 
     c1, c2, c3 = st.columns([3, 1, 1])
     busca = c1.text_input("", placeholder="Buscar produto, marca, SKU...",
@@ -1109,8 +1209,7 @@ def pagina_loja(loja: str):
 
 
 def pagina_historico():
-    st.markdown("<h2 style='font-size:20px;font-weight:700;color:#f0f6fc;margin-bottom:12px'>"
-                "📅 Histórico</h2>", unsafe_allow_html=True)
+    sticky_header("📅 Histórico")
     f1, f2, f3, f4 = st.columns(4)
     fl = f1.selectbox("Loja",       ["Todas","Distribuidora","Sublimação"], label_visibility="collapsed")
     fs = f2.selectbox("Status",     ["Todos"]+list(STATUS_HI),             label_visibility="collapsed")
@@ -1161,8 +1260,7 @@ def pagina_historico():
 
 
 def pagina_exportar():
-    st.markdown("<h2 style='font-size:20px;font-weight:700;color:#f0f6fc;margin-bottom:12px'>"
-                "📥 Exportar</h2>", unsafe_allow_html=True)
+    sticky_header("📥 Exportar")
     c1, c2 = st.columns(2)
     le  = c1.selectbox("Loja", ["Ambas","Distribuidora","Sublimação"])
     inc = c2.checkbox("Incluir Histórico")
@@ -1251,8 +1349,7 @@ def pagina_exportar():
 
 
 def pagina_fornecedores():
-    st.markdown("<h2 style='font-size:20px;font-weight:700;color:#f0f6fc;margin-bottom:12px'>"
-                "🏭 Fornecedores</h2>", unsafe_allow_html=True)
+    sticky_header("🏭 Fornecedores")
     tab_l, tab_n = st.tabs(["Lista", "Novo Fornecedor"])
 
     with tab_n:
@@ -1298,8 +1395,7 @@ def pagina_fornecedores():
 def pagina_admin():
     if u["acesso"] != "admin":
         st.error("Acesso restrito."); return
-    st.markdown("<h2 style='font-size:20px;font-weight:700;color:#f0f6fc;margin-bottom:12px'>"
-                "⚙️ Admin</h2>", unsafe_allow_html=True)
+    sticky_header("⚙️ Administração")
     tab_u, tab_s = st.tabs(["Usuários", "Seções"])
 
     ACESSO_MAP = {
@@ -1311,19 +1407,29 @@ def pagina_admin():
 
     with tab_u:
         st.markdown("#### Novo Usuário")
+        st.caption(f"Senha mínima: {SENHA_MIN_CHARS} caracteres + 1 número")
         with st.form("fnu"):
             c1,c2,c3,c4 = st.columns(4)
             nome   = c1.text_input("Nome")
             email  = c2.text_input("Email")
-            senha  = c3.text_input("Senha", type="password")
+            senha  = c3.text_input("Senha", type="password",
+                                   help=f"Mín. {SENHA_MIN_CHARS} chars e 1 número")
             acesso = c4.selectbox("Acesso", list(ACESSO_MAP.keys()),
                                   format_func=lambda x: ACESSO_MAP[x])
             if st.form_submit_button("Criar", type="primary"):
                 if nome and email and senha:
-                    err = create_usuario(nome, email, senha, acesso)
-                    if err: st.error(err)
-                    else: st.success("Criado!")
-                    st.rerun()
+                    err_senha = validar_senha_forte(senha)
+                    if err_senha:
+                        st.error(f"🔒 {err_senha}")
+                    else:
+                        err = create_usuario(nome, email, senha, acesso)
+                        if err: st.error(err)
+                        else:
+                            log_audit("CRIAR_USUARIO", "pc_usuarios", None, email)
+                            st.success("Usuário criado!")
+                        st.rerun()
+                else:
+                    st.warning("Preencha todos os campos.")
 
         st.markdown("#### Usuários")
         for usu in get_usuarios():
@@ -1344,18 +1450,30 @@ def pagina_admin():
                 opcoes_valor   = list(ACESSO_MAP.keys())
                 idx_atual = opcoes_valor.index(usu["acesso"]) if usu["acesso"] in opcoes_valor else 0
                 ea_display = e3.selectbox("Acesso", opcoes_display, index=idx_atual)
-                ep = e4.text_input("Nova Senha", type="password")
+                ep = e4.text_input("Nova Senha", type="password",
+                                   help=f"Mín. {SENHA_MIN_CHARS} chars e 1 número")
                 s1, s2 = st.columns(2)
                 if s1.form_submit_button("Salvar", type="primary"):
                     ea_valor = opcoes_valor[opcoes_display.index(ea_display)]
-                    d = {"nome": en, "email": ee, "acesso": ea_valor}
-                    if ep: d["senha_hash"] = hash_pwd(ep)
+                    if ep:
+                        err_s = validar_senha_forte(ep)
+                        if err_s:
+                            st.error(f"🔒 {err_s}"); st.stop()
+                        d = {"nome": en, "email": ee, "acesso": ea_valor,
+                             "senha_hash": hash_pwd(ep)}
+                    else:
+                        d = {"nome": en, "email": ee, "acesso": ea_valor}
                     err = update_usuario(usu["id"], d)
                     if err: st.error(err)
-                    else: st.success("Salvo!")
+                    else:
+                        log_audit("EDITAR_USUARIO", "pc_usuarios", usu["id"], ee)
+                        st.success("Salvo!")
                     st.rerun()
                 if s2.form_submit_button("Desativar" if usu["ativo"] else "Ativar"):
-                    update_usuario(usu["id"], {"ativo": not usu["ativo"]}); st.rerun()
+                    acao = "DESATIVAR" if usu["ativo"] else "ATIVAR"
+                    update_usuario(usu["id"], {"ativo": not usu["ativo"]})
+                    log_audit(acao, "pc_usuarios", usu["id"], usu["email"])
+                    st.rerun()
 
     with tab_s:
         for loja, info in LOJAS.items():
