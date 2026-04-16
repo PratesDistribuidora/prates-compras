@@ -26,7 +26,16 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(
 logger = logging.getLogger(__name__)
 
 try:
-    _favicon = _PIL_Image.open("logo.jpg")
+    from PIL import ImageDraw as _ImageDraw
+    _img = _PIL_Image.open("logo.jpg").convert("RGBA")
+    _s   = min(_img.size)
+    _img = _img.crop(((_img.width - _s) // 2, (_img.height - _s) // 2,
+                      (_img.width + _s) // 2, (_img.height + _s) // 2))
+    _img = _img.resize((128, 128), _PIL_Image.LANCZOS)
+    _mask = _PIL_Image.new("L", (128, 128), 0)
+    _ImageDraw.Draw(_mask).ellipse((0, 0, 128, 128), fill=255)
+    _img.putalpha(_mask)
+    _favicon = _img
 except Exception:
     _favicon = "🛒"
 
