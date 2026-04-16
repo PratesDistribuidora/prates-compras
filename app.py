@@ -16,6 +16,7 @@ from reportlab.lib import colors as rl_colors
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
+import streamlit.components.v1 as stcmp
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CONFIGURAÇÃO INICIAL & LOGGING
@@ -143,6 +144,9 @@ st.markdown("""
         .kpi-val { font-size: 18px !important; }
         button { min-height: 44px !important; }
     }
+
+    /* Oculta iframes de injeção JS (height=0) */
+    iframe[height="0"], [data-testid="stCustomComponentV1"] iframe { display: none !important; }
 
     /* ── SIDEBAR ── */
     section[data-testid="stSidebar"] {background: #0d1117 !important; border-right: 1px solid #21262d !important; padding: 15px 10px !important}
@@ -355,6 +359,59 @@ def sticky_header(titulo: str):
         f"</div>",
         unsafe_allow_html=True
     )
+
+def _make_toolbar_sticky(n_rows: int):
+    """
+    Injeta JS (via iframe same-origin) que aplica position:sticky nas
+    primeiras n_rows linhas de widgets (stHorizontalBlock) abaixo do
+    sticky-page-hdr. Chamado APÓS os widgets de toolbar serem renderizados.
+    """
+    stcmp.html(f"""<script>
+(function() {{
+    var N = {n_rows};
+    var TITLE_H = 94;  /* ~46px barra Streamlit + ~48px nosso sticky-page-hdr */
+
+    function apply() {{
+        var par;
+        try {{ par = window.parent.document; }} catch(e) {{ return; }}
+
+        /* Sobe da .sticky-page-hdr até o stVerticalBlock pai */
+        var hdr = par.querySelector('.sticky-page-hdr');
+        if (!hdr) return;
+        var vblock = hdr;
+        while (vblock && !(vblock.dataset && vblock.dataset.testid === 'stVerticalBlock'))
+            vblock = vblock.parentElement;
+        if (!vblock) return;
+
+        /* Torna as primeiras N linhas stHorizontalBlock sticky */
+        var top = TITLE_H, found = 0;
+        for (var i = 0; i < vblock.children.length && found < N; i++) {{
+            var c = vblock.children[i];
+            if (c.dataset && c.dataset.testid === 'stHorizontalBlock') {{
+                var h = c.getBoundingClientRect().height;
+                c.style.setProperty('position', 'sticky', 'important');
+                c.style.setProperty('top',       top + 'px', 'important');
+                c.style.setProperty('z-index',   (499 - found) + '', 'important');
+                c.style.setProperty('background','#0f1419', 'important');
+                c.style.setProperty('padding-bottom', '5px', 'important');
+                c.style.setProperty('border-bottom',  '1px solid #21262d', 'important');
+                top += (h > 10 ? h : 52) + 2;
+                found++;
+            }}
+        }}
+    }}
+
+    /* Aplica imediatamente e re-aplica após cada re-render do Streamlit */
+    var t;
+    function run() {{ clearTimeout(t); t = setTimeout(apply, 180); }}
+    run();
+    try {{
+        var root = window.parent.document.querySelector('[data-testid="stMainBlockContainer"]')
+                   || window.parent.document.body;
+        new MutationObserver(run).observe(root, {{childList: true, subtree: false}});
+    }} catch(e) {{}}
+}})();
+</script>""", height=0, scrolling=False)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CRUD — FORNECEDORES
@@ -786,6 +843,26 @@ with st.sidebar:
         st.session_state.usuario = None
         st.rerun()
 
+# ── Favicon: usa a logo que já está no DOM da sidebar ──────────────────────
+stcmp.html("""<script>
+(function() {
+    function setFav() {
+        var par;
+        try { par = window.parent.document; } catch(e) { return; }
+        /* Pega o src da logo já renderizada na sidebar */
+        var logo = par.querySelector('[data-testid="stSidebar"] img');
+        if (!logo || !logo.src) { setTimeout(setFav, 400); return; }
+        var fav = par.querySelector("link[rel*='icon']") || par.createElement('link');
+        fav.rel  = 'icon';
+        fav.type = 'image/jpeg';
+        fav.href = logo.src;
+        if (!fav.parentNode) par.head.appendChild(fav);
+        else fav.href = logo.src;
+    }
+    setTimeout(setFav, 400);
+})();
+</script>""", height=0, scrolling=False)
+
 # ─────────────────────────────────────────────────────────────────────────────
 # PÁGINAS
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1001,6 +1078,9 @@ def pagina_loja(loja: str):
                    key=f"fst_{loja}", label_visibility="collapsed")
     fpr = f2.radio("", ["Todas"]+PRIO, horizontal=True,
                    key=f"fpr_{loja}", label_visibility="collapsed")
+
+    # Torna a barra de busca/botões e os filtros sticky
+    _make_toolbar_sticky(2)
 
     # Gerenciar Seções
     if st.session_state.get(f"gs_{loja}"):
@@ -1319,6 +1399,9 @@ def pagina_historico():
     fs = f2.selectbox("Status",     ["Todos"]+list(STATUS_HI),             label_visibility="collapsed")
     fp = f3.selectbox("Prioridade", ["Todas"]+PRIO,                        label_visibility="collapsed")
     fb = f4.text_input("",          placeholder="Buscar...",               label_visibility="collapsed")
+
+    # Torna a linha de filtros sticky
+    _make_toolbar_sticky(1)
 
     @st.cache_data(ttl=60, show_spinner=False)
     def load_historico():
