@@ -16,7 +16,6 @@ from reportlab.lib import colors as rl_colors
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
-import streamlit.components.v1 as stcmp
 from PIL import Image as _PIL_Image
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -152,16 +151,59 @@ st.markdown("""
     [data-testid="block-container"] {
         padding-top: 3.8rem !important;
     }
-    /* Mobile: sidebar some, cabeçalho ocupa largura total */
+    /* Mobile: sidebar some, cabeçalho e toolbars ocupam largura total */
     @media (max-width: 768px) {
         .sticky-page-hdr { left: 0 !important; padding: 8px 1rem 10px !important; }
+        [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r1),
+        [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r2),
+        [data-testid="stHorizontalBlock"]:has(.tlbr-hist-r1) { left: 0 !important; padding: 4px 0.5rem !important; }
         [data-testid="block-container"] { padding: 3.8rem 0.5rem 1rem !important; }
+        [data-testid="block-container"]:has(.tlbr-loja-r1) { padding-top: 14rem !important; }
+        [data-testid="block-container"]:has(.tlbr-hist-r1) { padding-top: 9rem !important; }
         .kpi-val { font-size: 18px !important; }
         button { min-height: 44px !important; }
     }
 
-    /* Minimiza iframes de injeção JS sem esconder (display:none bloqueia execução do script) */
-    [data-testid="stCustomComponentV1"] { height: 0 !important; overflow: hidden !important; margin: 0 !important; padding: 0 !important; }
+    /* ── TOOLBAR FIXA — Distribuidora / Sublimação ── */
+    /* Linha 1: busca + botões */
+    [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r1) {
+        position: fixed !important;
+        top: 94px !important;
+        left: 21.125rem !important;
+        right: 0 !important;
+        z-index: 998 !important;
+        background: #0f1419 !important;
+        padding: 4px 1.5rem !important;
+    }
+    /* Linha 2: filtros de status + prioridade */
+    [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r2) {
+        position: fixed !important;
+        top: 148px !important;
+        left: 21.125rem !important;
+        right: 0 !important;
+        z-index: 997 !important;
+        background: #0f1419 !important;
+        padding: 4px 1.5rem !important;
+        border-bottom: 1px solid #30363d !important;
+    }
+    /* ── TOOLBAR FIXA — Histórico ── */
+    [data-testid="stHorizontalBlock"]:has(.tlbr-hist-r1) {
+        position: fixed !important;
+        top: 94px !important;
+        left: 21.125rem !important;
+        right: 0 !important;
+        z-index: 998 !important;
+        background: #0f1419 !important;
+        padding: 4px 1.5rem !important;
+        border-bottom: 1px solid #30363d !important;
+    }
+    /* Compensar padding p/ conteúdo abaixo das toolbars fixas */
+    [data-testid="block-container"]:has(.tlbr-loja-r1) {
+        padding-top: 14rem !important;
+    }
+    [data-testid="block-container"]:has(.tlbr-hist-r1) {
+        padding-top: 9rem !important;
+    }
 
     /* ── SIDEBAR ── */
     section[data-testid="stSidebar"] {background: #0d1117 !important; border-right: 1px solid #21262d !important; padding: 15px 10px !important}
@@ -375,72 +417,6 @@ def sticky_header(titulo: str):
         unsafe_allow_html=True
     )
 
-def _make_toolbar_sticky(n_rows: int):
-    """
-    Aplica position:sticky nas primeiras n_rows linhas de widgets via CSS injetado.
-    O seletor :has() é suportado por Chrome 105+, Firefox 121+, Safari 15.4+.
-    Como fallback, usa JS via stcmp.html (iframe same-origin com allow-same-origin).
-    """
-    # CSS — abordagem primária (sem depender de cross-frame JS)
-    top1 = 94   # ~46px Streamlit header + ~48px sticky-page-hdr
-    top2 = 144  # top1 + ~50px altura da linha 1
-    css_rows = f"""
-    [data-testid="stVerticalBlock"]:has(.sticky-page-hdr)
-      > [data-testid="stHorizontalBlock"]:nth-child(2) {{
-        position: sticky !important;
-        top: {top1}px !important;
-        z-index: 499 !important;
-        background: #0f1419 !important;
-        padding-bottom: 5px !important;
-        border-bottom: 1px solid #30363d !important;
-    }}"""
-    if n_rows >= 2:
-        css_rows += f"""
-    [data-testid="stVerticalBlock"]:has(.sticky-page-hdr)
-      > [data-testid="stHorizontalBlock"]:nth-child(3) {{
-        position: sticky !important;
-        top: {top2}px !important;
-        z-index: 498 !important;
-        background: #0f1419 !important;
-        padding-bottom: 5px !important;
-        border-bottom: 1px solid #30363d !important;
-    }}"""
-    st.markdown(f"<style>{css_rows}</style>", unsafe_allow_html=True)
-
-    # JS via stcmp — fallback para navegadores sem suporte a :has()
-    stcmp.html(f"""<script>
-(function() {{
-    var N = {n_rows};
-    var TOP1 = {top1}, TOP2 = {top2};
-    function apply() {{
-        var par;
-        try {{ par = window.parent.document; }} catch(e) {{ return; }}
-        var hdr = par.querySelector('.sticky-page-hdr');
-        if (!hdr) return;
-        var vb = hdr;
-        while (vb && !(vb.getAttribute && vb.getAttribute('data-testid') === 'stVerticalBlock'))
-            vb = vb.parentElement;
-        if (!vb) return;
-        var rows = [], ch = vb.firstElementChild;
-        while (ch) {{
-            if (ch.getAttribute && ch.getAttribute('data-testid') === 'stHorizontalBlock') rows.push(ch);
-            ch = ch.nextElementSibling;
-        }}
-        var tops = [TOP1, TOP2];
-        rows.slice(0, N).forEach(function(el, i) {{
-            el.style.setProperty('position','sticky','important');
-            el.style.setProperty('top', tops[i] + 'px','important');
-            el.style.setProperty('z-index', (499-i)+'','important');
-            el.style.setProperty('background','#0f1419','important');
-            el.style.setProperty('padding-bottom','5px','important');
-            el.style.setProperty('border-bottom','1px solid #30363d','important');
-        }});
-    }}
-    var t; function run(){{ clearTimeout(t); t=setTimeout(apply,300); }}
-    run();
-    try {{ new MutationObserver(run).observe(window.parent.document.body,{{childList:true,subtree:false}}); }} catch(e){{}}
-}})();
-</script>""", height=0, scrolling=False)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CRUD — FORNECEDORES
@@ -1075,6 +1051,7 @@ def pagina_loja(loja: str):
     sticky_header(f"{info['icone']} {info['nome']}")
 
     c1, c2, c3 = st.columns([3, 1, 1])
+    c1.markdown('<span class="tlbr-loja-r1" style="display:none"></span>', unsafe_allow_html=True)
     busca = c1.text_input("", placeholder="Buscar produto, marca, SKU...",
                           label_visibility="collapsed", key=f"busc_{loja}")
     if c2.button("+ Produto", use_container_width=True, key=f"btnp_{loja}", type="primary"):
@@ -1083,13 +1060,11 @@ def pagina_loja(loja: str):
         st.session_state[f"gs_{loja}"] = not st.session_state.get(f"gs_{loja}", False)
 
     f1, f2 = st.columns(2)
+    f1.markdown('<span class="tlbr-loja-r2" style="display:none"></span>', unsafe_allow_html=True)
     fst = f1.radio("", ["Todos"]+list(STATUS_AT), horizontal=True,
                    key=f"fst_{loja}", label_visibility="collapsed")
     fpr = f2.radio("", ["Todas"]+PRIO, horizontal=True,
                    key=f"fpr_{loja}", label_visibility="collapsed")
-
-    # Torna a barra de busca/botões e os filtros sticky
-    _make_toolbar_sticky(2)
 
     # Gerenciar Seções
     if st.session_state.get(f"gs_{loja}"):
@@ -1404,13 +1379,11 @@ def pagina_loja(loja: str):
 def pagina_historico():
     sticky_header("📅 Histórico")
     f1, f2, f3, f4 = st.columns(4)
+    f1.markdown('<span class="tlbr-hist-r1" style="display:none"></span>', unsafe_allow_html=True)
     fl = f1.selectbox("Loja",       ["Todas","Distribuidora","Sublimação"], label_visibility="collapsed")
     fs = f2.selectbox("Status",     ["Todos"]+list(STATUS_HI),             label_visibility="collapsed")
     fp = f3.selectbox("Prioridade", ["Todas"]+PRIO,                        label_visibility="collapsed")
     fb = f4.text_input("",          placeholder="Buscar...",               label_visibility="collapsed")
-
-    # Torna a linha de filtros sticky
-    _make_toolbar_sticky(1)
 
     @st.cache_data(ttl=60, show_spinner=False)
     def load_historico():
