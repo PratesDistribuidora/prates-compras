@@ -144,8 +144,8 @@ st.markdown("""
         right: 0;
         z-index: 999;
         background: #0f1419;
-        padding: 10px 1.5rem 12px;
-        border-bottom: 1px solid #21262d;
+        padding: 10px 1.5rem 10px;
+        border-bottom: 1px solid rgba(33,38,45,0.9);
     }
     /* Compensa o header fixo empurrando o conteúdo para baixo */
     [data-testid="block-container"] {
@@ -153,6 +153,7 @@ st.markdown("""
     }
 
     /* ── TOOLBARS FIXAS — todas as páginas internas (exceto Dashboard) ── */
+    /* Sombra elegante separa a zona fixa do conteúdo rolável */
     /* Loja — linha 1: busca + botões */
     [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r1) {
         position: fixed !important;
@@ -161,9 +162,9 @@ st.markdown("""
         right: 0 !important;
         z-index: 998 !important;
         background: #0f1419 !important;
-        padding: 6px 1.5rem !important;
+        padding: 5px 0 !important;
     }
-    /* Loja — linha 2: filtros de status + prioridade */
+    /* Loja — linha 2: filtros (última linha fixa — recebe a sombra de separação) */
     [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r2) {
         position: fixed !important;
         top: 152px !important;
@@ -171,8 +172,8 @@ st.markdown("""
         right: 0 !important;
         z-index: 997 !important;
         background: #0f1419 !important;
-        padding: 6px 1.5rem !important;
-        border-bottom: 1px solid #30363d !important;
+        padding: 5px 0 4px !important;
+        box-shadow: 0 6px 24px rgba(0,0,0,0.6) !important;
     }
     /* Histórico + Exportar — linha de filtros/controles */
     [data-testid="stHorizontalBlock"]:has(.tlbr-hist-r1),
@@ -183,8 +184,8 @@ st.markdown("""
         right: 0 !important;
         z-index: 998 !important;
         background: #0f1419 !important;
-        padding: 6px 1.5rem !important;
-        border-bottom: 1px solid #30363d !important;
+        padding: 5px 0 4px !important;
+        box-shadow: 0 6px 24px rgba(0,0,0,0.6) !important;
     }
     /* Fornecedores + Admin — barra de abas */
     [data-testid="stVerticalBlock"]:has(.tlbr-forn-tabs) [data-testid="stTabBar"],
@@ -196,7 +197,7 @@ st.markdown("""
         z-index: 998 !important;
         background: #0f1419 !important;
         padding: 4px 1.5rem !important;
-        border-bottom: 1px solid #30363d !important;
+        box-shadow: 0 6px 24px rgba(0,0,0,0.6) !important;
     }
 
     /* Mobile */
