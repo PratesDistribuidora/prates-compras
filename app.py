@@ -16,6 +16,7 @@ from reportlab.lib import colors as rl_colors
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
+import streamlit.components.v1 as stcmp
 from PIL import Image as _PIL_Image
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -153,7 +154,6 @@ st.markdown("""
     }
 
     /* ── TOOLBARS FIXAS — todas as páginas internas (exceto Dashboard) ── */
-    /* Sombra elegante separa a zona fixa do conteúdo rolável */
     /* Loja — linha 1: busca + botões */
     [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r1) {
         position: fixed !important;
@@ -163,8 +163,9 @@ st.markdown("""
         z-index: 998 !important;
         background: #0f1419 !important;
         padding: 5px 0 !important;
+        overflow: visible !important;
     }
-    /* Loja — linha 2: filtros (última linha fixa — recebe a sombra de separação) */
+    /* Loja — linha 2: filtros (última linha fixa — recebe sombra de separação) */
     [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r2) {
         position: fixed !important;
         top: 152px !important;
@@ -173,6 +174,7 @@ st.markdown("""
         z-index: 997 !important;
         background: #0f1419 !important;
         padding: 5px 0 4px !important;
+        overflow: visible !important;
         box-shadow: 0 6px 24px rgba(0,0,0,0.6) !important;
     }
     /* Histórico + Exportar — linha de filtros/controles */
@@ -185,6 +187,7 @@ st.markdown("""
         z-index: 998 !important;
         background: #0f1419 !important;
         padding: 5px 0 4px !important;
+        overflow: visible !important;
         box-shadow: 0 6px 24px rgba(0,0,0,0.6) !important;
     }
     /* Fornecedores + Admin — barra de abas */
@@ -198,6 +201,25 @@ st.markdown("""
         background: #0f1419 !important;
         padding: 4px 1.5rem !important;
         box-shadow: 0 6px 24px rgba(0,0,0,0.6) !important;
+    }
+    /* Garante que as colunas dentro das toolbars fixas se ajustem à largura do contêiner fixo */
+    [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r1) > [data-testid="column"],
+    [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r2) > [data-testid="column"],
+    [data-testid="stHorizontalBlock"]:has(.tlbr-hist-r1) > [data-testid="column"],
+    [data-testid="stHorizontalBlock"]:has(.tlbr-exp-r1) > [data-testid="column"] {
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        flex-shrink: 1 !important;
+    }
+    /* Oculta visualmente o iframe do stcmp sem impedir execução de scripts */
+    [data-testid="stCustomComponentV1"] {
+        height: 0 !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        line-height: 0 !important;
     }
 
     /* Mobile */
@@ -427,6 +449,25 @@ def sticky_header(titulo: str):
         f"</div>",
         unsafe_allow_html=True
     )
+
+
+def _scroll_to_top(page_id: str):
+    """Rola para o topo ao navegar entre páginas (detecta troca via session_state)."""
+    if st.session_state.get("_cur_page") == page_id:
+        return
+    st.session_state["_cur_page"] = page_id
+    stcmp.html("""<script>
+(function(){
+  function go(){
+    try{
+      var el=window.parent.document.querySelector('[data-testid="stMainBlockContainer"]');
+      if(el){ el.scrollTop=0; }
+      window.parent.scrollTo(0,0);
+    }catch(e){}
+  }
+  go(); setTimeout(go, 80);
+})();
+</script>""", height=0, scrolling=False)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1058,6 +1099,7 @@ def pagina_dashboard():
 
 
 def pagina_loja(loja: str):
+    _scroll_to_top(f"loja_{loja}")
     info = LOJAS[loja]
     sticky_header(f"{info['icone']} {info['nome']}")
 
@@ -1391,6 +1433,7 @@ def pagina_loja(loja: str):
 
 
 def pagina_historico():
+    _scroll_to_top("historico")
     sticky_header("📅 Histórico")
     f1, f2, f3, f4 = st.columns(4)
     f1.markdown('<span class="tlbr-hist-r1" style="display:none"></span>', unsafe_allow_html=True)
@@ -1445,6 +1488,7 @@ def pagina_historico():
 
 
 def pagina_exportar():
+    _scroll_to_top("exportar")
     sticky_header("📥 Exportar")
     c1, c2 = st.columns(2)
     c1.markdown('<span class="tlbr-exp-r1" style="display:none"></span>', unsafe_allow_html=True)
@@ -1657,6 +1701,7 @@ def pagina_exportar():
 
 
 def pagina_fornecedores():
+    _scroll_to_top("fornecedores")
     sticky_header("🏭 Fornecedores")
     st.markdown('<span class="tlbr-forn-tabs" style="display:none"></span>', unsafe_allow_html=True)
     st.markdown('<div style="height:70px"></div>', unsafe_allow_html=True)
@@ -1705,6 +1750,7 @@ def pagina_fornecedores():
 def pagina_admin():
     if u["acesso"] != "admin":
         st.error("Acesso restrito."); return
+    _scroll_to_top("admin")
     sticky_header("⚙️ Administração")
     st.markdown('<span class="tlbr-admin-tabs" style="display:none"></span>', unsafe_allow_html=True)
     st.markdown('<div style="height:70px"></div>', unsafe_allow_html=True)
