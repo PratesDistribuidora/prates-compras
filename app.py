@@ -1304,7 +1304,7 @@ def pagina_loja(loja: str):
         titulo = f"📁 {sec['nome']} ({len(itens_all)} itens)"
         if npend > 0: titulo += f" · {npend} pendente(s)"
 
-        with st.expander(titulo, expanded=True):
+        with st.expander(titulo, expanded=len(itens_all) > 0):
             if itens:
                 for idx, item in enumerate(itens):
                     iid  = item["id"]
