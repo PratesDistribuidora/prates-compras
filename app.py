@@ -221,6 +221,14 @@ st.markdown("""
         padding: 0 !important;
         line-height: 0 !important;
     }
+    /* Botões compactos dentro das toolbars fixas */
+    [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r1) button {
+        padding: 3px 10px !important;
+        font-size: 12px !important;
+        min-height: 32px !important;
+        height: 32px !important;
+        line-height: 1 !important;
+    }
 
     /* Mobile */
     @media (max-width: 768px) {
@@ -449,6 +457,37 @@ def sticky_header(titulo: str):
         f"</div>",
         unsafe_allow_html=True
     )
+    # Posiciona as toolbars fixas alinhadas ao início real do conteúdo principal,
+    # respeitando a sidebar (aberta ou fechada) em tempo real.
+    stcmp.html("""<script>
+(function(){
+  function align(){
+    try{
+      var doc = window.parent.document;
+      var main = doc.querySelector('[data-testid="stMain"]');
+      if(!main) return;
+      var L = Math.round(main.getBoundingClientRect().left) + 'px';
+      var sels = [
+        '.sticky-page-hdr',
+        '[data-testid="stHorizontalBlock"]:has(.tlbr-loja-r1)',
+        '[data-testid="stHorizontalBlock"]:has(.tlbr-loja-r2)',
+        '[data-testid="stHorizontalBlock"]:has(.tlbr-hist-r1)',
+        '[data-testid="stHorizontalBlock"]:has(.tlbr-exp-r1)',
+        '[data-testid="stVerticalBlock"]:has(.tlbr-forn-tabs) [data-testid="stTabBar"]',
+        '[data-testid="stVerticalBlock"]:has(.tlbr-admin-tabs) [data-testid="stTabBar"]'
+      ];
+      sels.forEach(function(s){
+        var el = doc.querySelector(s);
+        if(el) el.style.setProperty('left', L, 'important');
+      });
+    }catch(e){}
+  }
+  align();
+  setTimeout(align, 100);
+  setTimeout(align, 400);
+  try{ new ResizeObserver(align).observe(window.parent.document.documentElement); }catch(e){}
+})();
+</script>""", height=0, scrolling=False)
 
 
 def _scroll_to_top(page_id: str):
@@ -1103,11 +1142,11 @@ def pagina_loja(loja: str):
     info = LOJAS[loja]
     sticky_header(f"{info['icone']} {info['nome']}")
 
-    c1, c2, c3 = st.columns([3, 1, 1])
+    c1, c2, c3 = st.columns([5, 1, 1])
     c1.markdown('<span class="tlbr-loja-r1" style="display:none"></span>', unsafe_allow_html=True)
     busca = c1.text_input("", placeholder="Buscar produto, marca, SKU...",
                           label_visibility="collapsed", key=f"busc_{loja}")
-    if c2.button("+ Produto", use_container_width=True, key=f"btnp_{loja}", type="primary"):
+    if c2.button("＋ Produto", use_container_width=True, key=f"btnp_{loja}", type="primary"):
         st.session_state[f"cp_{loja}"] = not st.session_state.get(f"cp_{loja}", False)
     if c3.button("Seções", use_container_width=True, key=f"btns_{loja}", type="primary"):
         st.session_state[f"gs_{loja}"] = not st.session_state.get(f"gs_{loja}", False)
