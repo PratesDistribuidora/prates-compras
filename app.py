@@ -154,27 +154,28 @@ st.markdown("""
     }
 
     /* ── TOOLBARS FIXAS — todas as páginas internas (exceto Dashboard) ── */
+    /* left:0/right:0 garante que o contêiner fixo seja largo o suficiente
+       para acomodar as colunas renderizadas por Streamlit sem cortar o lado direito.
+       A sidebar tem z-index maior e fica por cima, sem conflito visual. */
     /* Loja — linha 1: busca + botões */
     [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r1) {
         position: fixed !important;
         top: 94px !important;
-        left: 21.125rem !important;
+        left: 0 !important;
         right: 0 !important;
         z-index: 998 !important;
         background: #0f1419 !important;
         padding: 5px 0 !important;
-        overflow: visible !important;
     }
     /* Loja — linha 2: filtros (última linha fixa — recebe sombra de separação) */
     [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r2) {
         position: fixed !important;
         top: 152px !important;
-        left: 21.125rem !important;
+        left: 0 !important;
         right: 0 !important;
         z-index: 997 !important;
         background: #0f1419 !important;
         padding: 5px 0 4px !important;
-        overflow: visible !important;
         box-shadow: 0 6px 24px rgba(0,0,0,0.6) !important;
     }
     /* Histórico + Exportar — linha de filtros/controles */
@@ -182,12 +183,11 @@ st.markdown("""
     [data-testid="stHorizontalBlock"]:has(.tlbr-exp-r1) {
         position: fixed !important;
         top: 94px !important;
-        left: 21.125rem !important;
+        left: 0 !important;
         right: 0 !important;
         z-index: 998 !important;
         background: #0f1419 !important;
         padding: 5px 0 4px !important;
-        overflow: visible !important;
         box-shadow: 0 6px 24px rgba(0,0,0,0.6) !important;
     }
     /* Fornecedores + Admin — barra de abas */
@@ -195,7 +195,7 @@ st.markdown("""
     [data-testid="stVerticalBlock"]:has(.tlbr-admin-tabs) [data-testid="stTabBar"] {
         position: fixed !important;
         top: 94px !important;
-        left: 21.125rem !important;
+        left: 0 !important;
         right: 0 !important;
         z-index: 998 !important;
         background: #0f1419 !important;
