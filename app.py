@@ -136,11 +136,11 @@ st.markdown("""
         border-color: #8b949e !important;
     }
 
-    /* ── CABEÇALHO FIXO DAS PÁGINAS INTERNAS — position:fixed é o único método confiável no Streamlit ── */
+    /* ── CABEÇALHO FIXO DAS PÁGINAS INTERNAS ── */
     .sticky-page-hdr {
         position: fixed !important;
         top: 2.875rem;
-        left: 21.125rem;   /* largura padrão da sidebar no Streamlit */
+        left: 0;
         right: 0;
         z-index: 999;
         background: #0f1419;
@@ -151,58 +151,61 @@ st.markdown("""
     [data-testid="block-container"] {
         padding-top: 3.8rem !important;
     }
-    /* Mobile: sidebar some, cabeçalho e toolbars ocupam largura total */
-    @media (max-width: 768px) {
-        .sticky-page-hdr { left: 0 !important; padding: 8px 1rem 10px !important; }
-        [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r1),
-        [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r2),
-        [data-testid="stHorizontalBlock"]:has(.tlbr-hist-r1) { left: 0 !important; padding: 4px 0.5rem !important; }
-        [data-testid="block-container"] { padding: 3.8rem 0.5rem 1rem !important; }
-        [data-testid="block-container"]:has(.tlbr-loja-r1) { padding-top: 14rem !important; }
-        [data-testid="block-container"]:has(.tlbr-hist-r1) { padding-top: 9rem !important; }
-        .kpi-val { font-size: 18px !important; }
-        button { min-height: 44px !important; }
+
+    /* ── OVERFLOW FIX — permite position:sticky nos filhos ── */
+    section[data-testid="stMain"] {
+        overflow-x: clip !important;
+        overflow-y: visible !important;
+    }
+    [data-testid="stMainBlockContainer"],
+    [data-testid="block-container"] {
+        overflow: visible !important;
     }
 
-    /* ── TOOLBAR FIXA — Distribuidora / Sublimação ── */
-    /* Linha 1: busca + botões */
+    /* ── TOOLBARS STICKY — todas as páginas internas (exceto Dashboard) ── */
+    /* Loja — linha 1: busca + botões */
     [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r1) {
-        position: fixed !important;
+        position: sticky !important;
         top: 94px !important;
-        left: 21.125rem !important;
-        right: 0 !important;
         z-index: 998 !important;
         background: #0f1419 !important;
-        padding: 4px 1.5rem !important;
+        padding: 4px 0 !important;
     }
-    /* Linha 2: filtros de status + prioridade */
+    /* Loja — linha 2: filtros de status + prioridade */
     [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r2) {
-        position: fixed !important;
+        position: sticky !important;
         top: 148px !important;
-        left: 21.125rem !important;
-        right: 0 !important;
         z-index: 997 !important;
         background: #0f1419 !important;
-        padding: 4px 1.5rem !important;
+        padding: 4px 0 !important;
         border-bottom: 1px solid #30363d !important;
     }
-    /* ── TOOLBAR FIXA — Histórico ── */
-    [data-testid="stHorizontalBlock"]:has(.tlbr-hist-r1) {
-        position: fixed !important;
+    /* Histórico + Exportar — linha de filtros/controles */
+    [data-testid="stHorizontalBlock"]:has(.tlbr-hist-r1),
+    [data-testid="stHorizontalBlock"]:has(.tlbr-exp-r1) {
+        position: sticky !important;
         top: 94px !important;
-        left: 21.125rem !important;
-        right: 0 !important;
         z-index: 998 !important;
         background: #0f1419 !important;
-        padding: 4px 1.5rem !important;
+        padding: 4px 0 !important;
         border-bottom: 1px solid #30363d !important;
     }
-    /* Compensar padding p/ conteúdo abaixo das toolbars fixas */
-    [data-testid="block-container"]:has(.tlbr-loja-r1) {
-        padding-top: 14rem !important;
+    /* Fornecedores + Admin — barra de abas */
+    [data-testid="stVerticalBlock"]:has(.tlbr-forn-tabs) [data-testid="stTabBar"],
+    [data-testid="stVerticalBlock"]:has(.tlbr-admin-tabs) [data-testid="stTabBar"] {
+        position: sticky !important;
+        top: 94px !important;
+        z-index: 998 !important;
+        background: #0f1419 !important;
+        padding-bottom: 4px !important;
     }
-    [data-testid="block-container"]:has(.tlbr-hist-r1) {
-        padding-top: 9rem !important;
+
+    /* Mobile */
+    @media (max-width: 768px) {
+        .sticky-page-hdr { padding: 8px 1rem 10px !important; }
+        [data-testid="block-container"] { padding: 3.8rem 0.5rem 1rem !important; }
+        .kpi-val { font-size: 18px !important; }
+        button { min-height: 44px !important; }
     }
 
     /* ── SIDEBAR ── */
@@ -1431,6 +1434,7 @@ def pagina_historico():
 def pagina_exportar():
     sticky_header("📥 Exportar")
     c1, c2 = st.columns(2)
+    c1.markdown('<span class="tlbr-exp-r1" style="display:none"></span>', unsafe_allow_html=True)
     le  = c1.selectbox("Loja", ["Ambas","Distribuidora","Sublimação"])
     inc = c2.checkbox("Incluir Histórico")
 
@@ -1639,6 +1643,7 @@ def pagina_exportar():
 
 def pagina_fornecedores():
     sticky_header("🏭 Fornecedores")
+    st.markdown('<span class="tlbr-forn-tabs" style="display:none"></span>', unsafe_allow_html=True)
     tab_l, tab_n = st.tabs(["Lista", "Novo Fornecedor"])
 
     with tab_n:
@@ -1685,6 +1690,7 @@ def pagina_admin():
     if u["acesso"] != "admin":
         st.error("Acesso restrito."); return
     sticky_header("⚙️ Administração")
+    st.markdown('<span class="tlbr-admin-tabs" style="display:none"></span>', unsafe_allow_html=True)
     tab_u, tab_s = st.tabs(["Usuários", "Seções"])
 
     ACESSO_MAP = {
