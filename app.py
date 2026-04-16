@@ -17,6 +17,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 import streamlit.components.v1 as stcmp
+from PIL import Image as _PIL_Image
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CONFIGURAÇÃO INICIAL & LOGGING
@@ -24,9 +25,14 @@ import streamlit.components.v1 as stcmp
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
 
+try:
+    _favicon = _PIL_Image.open("logo.jpg")
+except Exception:
+    _favicon = "🛒"
+
 st.set_page_config(
     page_title="Prates Compras",
-    page_icon="🛒",
+    page_icon=_favicon,
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -145,8 +151,8 @@ st.markdown("""
         button { min-height: 44px !important; }
     }
 
-    /* Oculta iframes de injeção JS (height=0) */
-    iframe[height="0"], [data-testid="stCustomComponentV1"] iframe { display: none !important; }
+    /* Minimiza iframes de injeção JS sem esconder (display:none bloqueia execução do script) */
+    [data-testid="stCustomComponentV1"] { height: 0 !important; overflow: hidden !important; margin: 0 !important; padding: 0 !important; }
 
     /* ── SIDEBAR ── */
     section[data-testid="stSidebar"] {background: #0d1117 !important; border-right: 1px solid #21262d !important; padding: 15px 10px !important}
@@ -362,54 +368,68 @@ def sticky_header(titulo: str):
 
 def _make_toolbar_sticky(n_rows: int):
     """
-    Injeta JS (via iframe same-origin) que aplica position:sticky nas
-    primeiras n_rows linhas de widgets (stHorizontalBlock) abaixo do
-    sticky-page-hdr. Chamado APÓS os widgets de toolbar serem renderizados.
+    Aplica position:sticky nas primeiras n_rows linhas de widgets via CSS injetado.
+    O seletor :has() é suportado por Chrome 105+, Firefox 121+, Safari 15.4+.
+    Como fallback, usa JS via stcmp.html (iframe same-origin com allow-same-origin).
     """
+    # CSS — abordagem primária (sem depender de cross-frame JS)
+    top1 = 94   # ~46px Streamlit header + ~48px sticky-page-hdr
+    top2 = 144  # top1 + ~50px altura da linha 1
+    css_rows = f"""
+    [data-testid="stVerticalBlock"]:has(.sticky-page-hdr)
+      > [data-testid="stHorizontalBlock"]:nth-child(2) {{
+        position: sticky !important;
+        top: {top1}px !important;
+        z-index: 499 !important;
+        background: #0f1419 !important;
+        padding-bottom: 5px !important;
+        border-bottom: 1px solid #30363d !important;
+    }}"""
+    if n_rows >= 2:
+        css_rows += f"""
+    [data-testid="stVerticalBlock"]:has(.sticky-page-hdr)
+      > [data-testid="stHorizontalBlock"]:nth-child(3) {{
+        position: sticky !important;
+        top: {top2}px !important;
+        z-index: 498 !important;
+        background: #0f1419 !important;
+        padding-bottom: 5px !important;
+        border-bottom: 1px solid #30363d !important;
+    }}"""
+    st.markdown(f"<style>{css_rows}</style>", unsafe_allow_html=True)
+
+    # JS via stcmp — fallback para navegadores sem suporte a :has()
     stcmp.html(f"""<script>
 (function() {{
     var N = {n_rows};
-    var TITLE_H = 94;  /* ~46px barra Streamlit + ~48px nosso sticky-page-hdr */
-
+    var TOP1 = {top1}, TOP2 = {top2};
     function apply() {{
         var par;
         try {{ par = window.parent.document; }} catch(e) {{ return; }}
-
-        /* Sobe da .sticky-page-hdr até o stVerticalBlock pai */
         var hdr = par.querySelector('.sticky-page-hdr');
         if (!hdr) return;
-        var vblock = hdr;
-        while (vblock && !(vblock.dataset && vblock.dataset.testid === 'stVerticalBlock'))
-            vblock = vblock.parentElement;
-        if (!vblock) return;
-
-        /* Torna as primeiras N linhas stHorizontalBlock sticky */
-        var top = TITLE_H, found = 0;
-        for (var i = 0; i < vblock.children.length && found < N; i++) {{
-            var c = vblock.children[i];
-            if (c.dataset && c.dataset.testid === 'stHorizontalBlock') {{
-                var h = c.getBoundingClientRect().height;
-                c.style.setProperty('position', 'sticky', 'important');
-                c.style.setProperty('top',       top + 'px', 'important');
-                c.style.setProperty('z-index',   (499 - found) + '', 'important');
-                c.style.setProperty('background','#0f1419', 'important');
-                c.style.setProperty('padding-bottom', '5px', 'important');
-                c.style.setProperty('border-bottom',  '1px solid #21262d', 'important');
-                top += (h > 10 ? h : 52) + 2;
-                found++;
-            }}
+        var vb = hdr;
+        while (vb && !(vb.getAttribute && vb.getAttribute('data-testid') === 'stVerticalBlock'))
+            vb = vb.parentElement;
+        if (!vb) return;
+        var rows = [], ch = vb.firstElementChild;
+        while (ch) {{
+            if (ch.getAttribute && ch.getAttribute('data-testid') === 'stHorizontalBlock') rows.push(ch);
+            ch = ch.nextElementSibling;
         }}
+        var tops = [TOP1, TOP2];
+        rows.slice(0, N).forEach(function(el, i) {{
+            el.style.setProperty('position','sticky','important');
+            el.style.setProperty('top', tops[i] + 'px','important');
+            el.style.setProperty('z-index', (499-i)+'','important');
+            el.style.setProperty('background','#0f1419','important');
+            el.style.setProperty('padding-bottom','5px','important');
+            el.style.setProperty('border-bottom','1px solid #30363d','important');
+        }});
     }}
-
-    /* Aplica imediatamente e re-aplica após cada re-render do Streamlit */
-    var t;
-    function run() {{ clearTimeout(t); t = setTimeout(apply, 180); }}
+    var t; function run(){{ clearTimeout(t); t=setTimeout(apply,300); }}
     run();
-    try {{
-        var root = window.parent.document.querySelector('[data-testid="stMainBlockContainer"]')
-                   || window.parent.document.body;
-        new MutationObserver(run).observe(root, {{childList: true, subtree: false}});
-    }} catch(e) {{}}
+    try {{ new MutationObserver(run).observe(window.parent.document.body,{{childList:true,subtree:false}}); }} catch(e){{}}
 }})();
 </script>""", height=0, scrolling=False)
 
@@ -842,26 +862,6 @@ with st.sidebar:
     if st.button("🚪 Sair", use_container_width=True, type="primary"):
         st.session_state.usuario = None
         st.rerun()
-
-# ── Favicon: usa a logo que já está no DOM da sidebar ──────────────────────
-stcmp.html("""<script>
-(function() {
-    function setFav() {
-        var par;
-        try { par = window.parent.document; } catch(e) { return; }
-        /* Pega o src da logo já renderizada na sidebar */
-        var logo = par.querySelector('[data-testid="stSidebar"] img');
-        if (!logo || !logo.src) { setTimeout(setFav, 400); return; }
-        var fav = par.querySelector("link[rel*='icon']") || par.createElement('link');
-        fav.rel  = 'icon';
-        fav.type = 'image/jpeg';
-        fav.href = logo.src;
-        if (!fav.parentNode) par.head.appendChild(fav);
-        else fav.href = logo.src;
-    }
-    setTimeout(setFav, 400);
-})();
-</script>""", height=0, scrolling=False)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PÁGINAS
