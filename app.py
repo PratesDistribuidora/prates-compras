@@ -140,7 +140,7 @@ st.markdown("""
     .sticky-page-hdr {
         position: fixed !important;
         top: 2.875rem;
-        left: 0;
+        left: 21.125rem;
         right: 0;
         z-index: 999;
         background: #0f1419;
@@ -152,57 +152,64 @@ st.markdown("""
         padding-top: 3.8rem !important;
     }
 
-    /* ── OVERFLOW FIX — permite position:sticky nos filhos ── */
-    section[data-testid="stMain"] {
-        overflow-x: clip !important;
-        overflow-y: visible !important;
-    }
-    [data-testid="stMainBlockContainer"],
-    [data-testid="block-container"] {
-        overflow: visible !important;
-    }
-
-    /* ── TOOLBARS STICKY — todas as páginas internas (exceto Dashboard) ── */
+    /* ── TOOLBARS FIXAS — todas as páginas internas (exceto Dashboard) ── */
     /* Loja — linha 1: busca + botões */
     [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r1) {
-        position: sticky !important;
+        position: fixed !important;
         top: 94px !important;
+        left: 21.125rem !important;
+        right: 0 !important;
         z-index: 998 !important;
         background: #0f1419 !important;
-        padding: 4px 0 !important;
+        padding: 6px 1.5rem !important;
     }
     /* Loja — linha 2: filtros de status + prioridade */
     [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r2) {
-        position: sticky !important;
-        top: 148px !important;
+        position: fixed !important;
+        top: 152px !important;
+        left: 21.125rem !important;
+        right: 0 !important;
         z-index: 997 !important;
         background: #0f1419 !important;
-        padding: 4px 0 !important;
+        padding: 6px 1.5rem !important;
         border-bottom: 1px solid #30363d !important;
     }
     /* Histórico + Exportar — linha de filtros/controles */
     [data-testid="stHorizontalBlock"]:has(.tlbr-hist-r1),
     [data-testid="stHorizontalBlock"]:has(.tlbr-exp-r1) {
-        position: sticky !important;
+        position: fixed !important;
         top: 94px !important;
+        left: 21.125rem !important;
+        right: 0 !important;
         z-index: 998 !important;
         background: #0f1419 !important;
-        padding: 4px 0 !important;
+        padding: 6px 1.5rem !important;
         border-bottom: 1px solid #30363d !important;
     }
     /* Fornecedores + Admin — barra de abas */
     [data-testid="stVerticalBlock"]:has(.tlbr-forn-tabs) [data-testid="stTabBar"],
     [data-testid="stVerticalBlock"]:has(.tlbr-admin-tabs) [data-testid="stTabBar"] {
-        position: sticky !important;
+        position: fixed !important;
         top: 94px !important;
+        left: 21.125rem !important;
+        right: 0 !important;
         z-index: 998 !important;
         background: #0f1419 !important;
-        padding-bottom: 4px !important;
+        padding: 4px 1.5rem !important;
+        border-bottom: 1px solid #30363d !important;
     }
 
     /* Mobile */
     @media (max-width: 768px) {
-        .sticky-page-hdr { padding: 8px 1rem 10px !important; }
+        .sticky-page-hdr { left: 0 !important; padding: 8px 1rem 10px !important; }
+        [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r1),
+        [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r2),
+        [data-testid="stHorizontalBlock"]:has(.tlbr-hist-r1),
+        [data-testid="stHorizontalBlock"]:has(.tlbr-exp-r1),
+        [data-testid="stVerticalBlock"]:has(.tlbr-forn-tabs) [data-testid="stTabBar"],
+        [data-testid="stVerticalBlock"]:has(.tlbr-admin-tabs) [data-testid="stTabBar"] {
+            left: 0 !important;
+        }
         [data-testid="block-container"] { padding: 3.8rem 0.5rem 1rem !important; }
         .kpi-val { font-size: 18px !important; }
         button { min-height: 44px !important; }
@@ -1069,6 +1076,9 @@ def pagina_loja(loja: str):
     fpr = f2.radio("", ["Todas"]+PRIO, horizontal=True,
                    key=f"fpr_{loja}", label_visibility="collapsed")
 
+    # Espaçador: compensa as 2 linhas de toolbar + cabeçalho fixos (saem do fluxo)
+    st.markdown('<div style="height:130px"></div>', unsafe_allow_html=True)
+
     # Gerenciar Seções
     if st.session_state.get(f"gs_{loja}"):
         st.markdown("<div class='sec-hdr'><span style='font-weight:600;color:#58A6FF;font-size:13px'>"
@@ -1387,6 +1397,8 @@ def pagina_historico():
     fs = f2.selectbox("Status",     ["Todos"]+list(STATUS_HI),             label_visibility="collapsed")
     fp = f3.selectbox("Prioridade", ["Todas"]+PRIO,                        label_visibility="collapsed")
     fb = f4.text_input("",          placeholder="Buscar...",               label_visibility="collapsed")
+    # Espaçador: compensa a linha de toolbar + cabeçalho fixos (saem do fluxo)
+    st.markdown('<div style="height:70px"></div>', unsafe_allow_html=True)
 
     @st.cache_data(ttl=60, show_spinner=False)
     def load_historico():
@@ -1437,6 +1449,8 @@ def pagina_exportar():
     c1.markdown('<span class="tlbr-exp-r1" style="display:none"></span>', unsafe_allow_html=True)
     le  = c1.selectbox("Loja", ["Ambas","Distribuidora","Sublimação"])
     inc = c2.checkbox("Incluir Histórico")
+    # Espaçador: compensa a linha de toolbar + cabeçalho fixos (saem do fluxo)
+    st.markdown('<div style="height:70px"></div>', unsafe_allow_html=True)
 
     # CORRIGIDO: "Sublimação" com acento (estava "Sublimacao" → KeyError)
     lk_map = {"Ambas":"ambas","Distribuidora":"distribuidora","Sublimação":"sublimacao"}
@@ -1644,6 +1658,7 @@ def pagina_exportar():
 def pagina_fornecedores():
     sticky_header("🏭 Fornecedores")
     st.markdown('<span class="tlbr-forn-tabs" style="display:none"></span>', unsafe_allow_html=True)
+    st.markdown('<div style="height:70px"></div>', unsafe_allow_html=True)
     tab_l, tab_n = st.tabs(["Lista", "Novo Fornecedor"])
 
     with tab_n:
@@ -1691,6 +1706,7 @@ def pagina_admin():
         st.error("Acesso restrito."); return
     sticky_header("⚙️ Administração")
     st.markdown('<span class="tlbr-admin-tabs" style="display:none"></span>', unsafe_allow_html=True)
+    st.markdown('<div style="height:70px"></div>', unsafe_allow_html=True)
     tab_u, tab_s = st.tabs(["Usuários", "Seções"])
 
     ACESSO_MAP = {
