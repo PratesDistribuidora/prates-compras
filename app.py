@@ -11,6 +11,11 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
 from typing import Optional, List, Any
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib import colors as rl_colors
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import cm
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CONFIGURAÇÃO INICIAL & LOGGING
@@ -204,7 +209,7 @@ LOJAS = {
 STATUS_ALL = ["Pendente", "Aprovado", "Comprado", "Entregue", "Cancelado"]
 STATUS_AT  = ("Pendente", "Aprovado")       # tuple → hashable para @st.cache_data
 STATUS_HI  = ("Comprado", "Entregue", "Cancelado")
-PRIO       = ["Alta", "Media", "Baixa"]
+PRIO       = ["Alta", "Média", "Baixa"]
 UNID       = ["UN", "CX", "PCT", "KG", "MT", "LT", "RL", "PAR"]
 
 # Mapa de dias da semana em português
@@ -736,6 +741,47 @@ with st.sidebar:
             st.rerun()
 
     st.divider()
+
+    # ── Alterar própria senha ──
+    if st.button("🔑 Alterar Senha", use_container_width=True, key="btn_pwd", type="primary"):
+        st.session_state["show_pwd"] = not st.session_state.get("show_pwd", False)
+
+    if st.session_state.get("show_pwd"):
+        with st.form("form_alterar_senha"):
+            s_atual = st.text_input("Senha atual", type="password")
+            s_nova  = st.text_input("Nova senha",  type="password",
+                                    help=f"Mín. {SENHA_MIN_CHARS} caracteres e 1 número")
+            s_conf  = st.text_input("Confirmar",   type="password")
+            if st.form_submit_button("Salvar senha", type="primary", use_container_width=True):
+                if not s_atual or not s_nova or not s_conf:
+                    st.warning("Preencha todos os campos.")
+                elif s_nova != s_conf:
+                    st.error("As senhas não coincidem.")
+                else:
+                    err_s = validar_senha_forte(s_nova)
+                    if err_s:
+                        st.error(f"🔒 {err_s}")
+                    else:
+                        # Verificar senha atual
+                        try:
+                            _r = sb.table("pc_usuarios").select("senha_hash") \
+                                   .eq("id", u["id"]).execute()
+                            h = _r.data[0]["senha_hash"] if _r.data else ""
+                            ok_atual = verify_pwd(s_atual, h) if h.startswith("$2b$") \
+                                       else hashlib.sha256(s_atual.encode()).hexdigest() == h
+                        except Exception as _e:
+                            logger.error(f"Erro verificar senha: {_e}"); ok_atual = False
+                        if not ok_atual:
+                            st.error("Senha atual incorreta.")
+                        else:
+                            err = update_usuario(u["id"], {"senha_hash": hash_pwd(s_nova)})
+                            if err:
+                                st.error(err)
+                            else:
+                                log_audit("ALTERAR_SENHA", "pc_usuarios", u["id"], u["email"])
+                                st.success("Senha alterada!")
+                                st.session_state["show_pwd"] = False
+
     if st.button("🚪 Sair", use_container_width=True, type="primary"):
         st.session_state.usuario = None
         st.rerun()
@@ -1079,7 +1125,10 @@ def pagina_loja(loja: str):
 
         itens = itens_all[:]
         if fst != "Todos":  itens = [i for i in itens if i.get("status") == fst]
-        if fpr != "Todas":  itens = [i for i in itens if i.get("prioridade") == fpr]
+        if fpr != "Todas":
+            # Normaliza "Media" (dados antigos) e "Média" (dados novos)
+            fpr_alt = "Media" if fpr == "Média" else fpr
+            itens = [i for i in itens if i.get("prioridade") in (fpr, fpr_alt)]
         if busca:
             b = busca.lower()
             itens = [i for i in itens if b in " ".join([
@@ -1205,9 +1254,12 @@ def pagina_loja(loja: str):
                             epr  = re2[2].number_input("Preço", min_value=0.0,
                                                         value=float(item.get("preco_unit",0)),
                                                         step=0.01, format="%.2f")
+                            _prio_val = item.get("prioridade", "Média")
+                            # Normaliza valor antigo "Media" → "Média"
+                            if _prio_val == "Media": _prio_val = "Média"
                             eprio = re2[3].selectbox("Prioridade", PRIO,
-                                                      index=PRIO.index(item.get("prioridade","Media"))
-                                                      if item.get("prioridade") in PRIO else 1)
+                                                      index=PRIO.index(_prio_val)
+                                                      if _prio_val in PRIO else 1)
                             _dt_val = ""
                             try:
                                 if item.get("dt_necessidade"):
@@ -1397,6 +1449,126 @@ def pagina_exportar():
                 "⬇️ Baixar Excel", buf,
                 file_name=f"Compras_{datetime.now().strftime('%Y%m%d')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True)
+
+    st.divider()
+
+    if st.button("Gerar PDF", use_container_width=True, type="primary"):
+        with st.spinner("Gerando PDF..."):
+            sf     = None if inc else STATUS_AT
+            lojas_ = ["distribuidora","sublimacao"] if lk == "ambas" else [lk]
+            fme    = {f["id"]: f["nome"] for f in get_fornecedores()}
+
+            buf = io.BytesIO()
+            doc = SimpleDocTemplate(
+                buf, pagesize=landscape(A4),
+                leftMargin=1.2*cm, rightMargin=1.2*cm,
+                topMargin=1.5*cm, bottomMargin=1.5*cm
+            )
+            styles = getSampleStyleSheet()
+            c_title  = rl_colors.HexColor("#1a1a2e")
+            c_hdr    = rl_colors.HexColor("#21262D")
+            c_row0   = rl_colors.HexColor("#F6F8FA")
+            c_row1   = rl_colors.white
+            c_border = rl_colors.HexColor("#D0D7DE")
+            c_total  = rl_colors.HexColor("#0366D6")
+            c_loja   = rl_colors.HexColor("#1a1a2e")
+
+            st_title = ParagraphStyle("pt", parent=styles["Title"],
+                                       fontSize=15, textColor=rl_colors.white,
+                                       spaceAfter=4, leading=18)
+            st_sub   = ParagraphStyle("ps", parent=styles["Normal"],
+                                       fontSize=8, textColor=rl_colors.HexColor("#6e7781"),
+                                       spaceAfter=10)
+            st_loja  = ParagraphStyle("pl", parent=styles["Heading2"],
+                                       fontSize=11, textColor=c_loja,
+                                       spaceBefore=10, spaceAfter=4)
+
+            elements = []
+
+            # Cabeçalho do documento
+            hdr_data = [[Paragraph("<b>GRUPO PRATES — GUIA DE COMPRAS</b>", st_title)]]
+            hdr_tbl  = Table(hdr_data, colWidths=[doc.width])
+            hdr_tbl.setStyle(TableStyle([
+                ("BACKGROUND",   (0,0), (-1,-1), c_title),
+                ("TOPPADDING",   (0,0), (-1,-1), 10),
+                ("BOTTOMPADDING",(0,0), (-1,-1), 10),
+                ("LEFTPADDING",  (0,0), (-1,-1), 14),
+                ("ROUNDEDCORNERS", (0,0), (-1,-1), [4,4,4,4]),
+            ]))
+            elements.append(hdr_tbl)
+            elements.append(Paragraph(
+                f"Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')} · "
+                f"{'Ativos' if sf else 'Todos (incl. histórico)'}", st_sub))
+
+            col_w = [3*cm, 5.5*cm, 2.8*cm, 2.2*cm, 3.2*cm, 1.5*cm, 1.4*cm, 2.4*cm, 2.4*cm, 2.4*cm, 2.4*cm]
+            hdrs_pdf = ["Seção","Produto","Marca","SKU","Fornecedor",
+                        "Qtd","Unid","Preço Unit.","Total","Prioridade","Status"]
+
+            for loja in lojas_:
+                info = LOJAS[loja]
+                elements.append(Paragraph(f"{info['icone']} {info['nome'].upper()}", st_loja))
+
+                data_pdf = [hdrs_pdf]
+                tl = 0.0
+
+                for sec in get_secoes(loja):
+                    for item in get_itens_secao(sec["id"], sf):
+                        data_pdf.append([
+                            sec["nome"],
+                            item.get("produto",""),
+                            item.get("marca","") or "",
+                            item.get("sku","") or "",
+                            fme.get(item.get("fornecedor_id"),"") or "",
+                            str(item.get("qtd","") or ""),
+                            item.get("unidade",""),
+                            fmt_brl(item.get("preco_unit",0)),
+                            fmt_brl(item.get("total",0)),
+                            item.get("prioridade",""),
+                            item.get("status",""),
+                        ])
+                        tl += float(item.get("total") or 0)
+
+                # Linha de total
+                data_pdf.append(["","","","","","","",
+                                  Paragraph("<b>TOTAL:</b>", styles["Normal"]),
+                                  Paragraph(f"<b>{fmt_brl(tl)}</b>", styles["Normal"]),
+                                  "",""])
+
+                t_pdf = Table(data_pdf, colWidths=col_w, repeatRows=1)
+                row_count = len(data_pdf)
+                t_pdf.setStyle(TableStyle([
+                    # Cabeçalho
+                    ("BACKGROUND",    (0,0), (-1,0), c_hdr),
+                    ("TEXTCOLOR",     (0,0), (-1,0), rl_colors.white),
+                    ("FONTNAME",      (0,0), (-1,0), "Helvetica-Bold"),
+                    ("FONTSIZE",      (0,0), (-1,0), 8),
+                    ("ALIGN",         (0,0), (-1,0), "CENTER"),
+                    # Linhas zebradas
+                    *[("BACKGROUND", (0,r), (-1,r), c_row0 if r%2==0 else c_row1)
+                      for r in range(1, row_count-1)],
+                    ("FONTSIZE",      (0,1), (-1,-1), 7.5),
+                    ("TEXTCOLOR",     (0,1), (-1,-1), rl_colors.HexColor("#24292F")),
+                    # Linha de total
+                    ("BACKGROUND",    (0,-1), (-1,-1), rl_colors.HexColor("#EBF5FF")),
+                    ("FONTNAME",      (7,-1), (8,-1), "Helvetica-Bold"),
+                    ("TEXTCOLOR",     (8,-1), (8,-1), c_total),
+                    # Grade
+                    ("GRID",          (0,0), (-1,-1), 0.3, c_border),
+                    ("VALIGN",        (0,0), (-1,-1), "MIDDLE"),
+                    ("TOPPADDING",    (0,0), (-1,-1), 4),
+                    ("BOTTOMPADDING", (0,0), (-1,-1), 4),
+                    ("ALIGN",         (5,1), (-1,-1), "CENTER"),
+                ]))
+                elements.append(t_pdf)
+                elements.append(Spacer(1, 0.4*cm))
+
+            doc.build(elements)
+            buf.seek(0)
+            st.download_button(
+                "⬇️ Baixar PDF", buf,
+                file_name=f"Compras_{datetime.now().strftime('%Y%m%d')}.pdf",
+                mime="application/pdf",
                 use_container_width=True)
 
 
