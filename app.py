@@ -142,7 +142,7 @@ st.markdown("""
         position: fixed !important;
         top: 2.875rem;
         left: 21.125rem;
-        right: 0;
+        /*right: 0;*/
         z-index: 999;
         background: #0f1419;
         padding: 10px 1.5rem 10px;
@@ -162,7 +162,7 @@ st.markdown("""
         position: fixed !important;
         top: 94px !important;
         left: 0 !important;
-        right: 0 !important;
+        /*right: 0*/ !important;
         z-index: 998 !important;
         background: #0f1419 !important;
         padding: 5px 0 !important;
@@ -172,7 +172,7 @@ st.markdown("""
         position: fixed !important;
         top: 152px !important;
         left: 0 !important;
-        right: 0 !important;
+        /*right: 0*/ !important;
         z-index: 997 !important;
         background: #0f1419 !important;
         padding: 5px 0 4px !important;
@@ -184,7 +184,7 @@ st.markdown("""
         position: fixed !important;
         top: 94px !important;
         left: 0 !important;
-        right: 0 !important;
+        /*right: 0*/ !important;
         z-index: 998 !important;
         background: #0f1419 !important;
         padding: 5px 0 4px !important;
@@ -196,7 +196,7 @@ st.markdown("""
         position: fixed !important;
         top: 94px !important;
         left: 0 !important;
-        right: 0 !important;
+        /*right: 0*/ !important;
         z-index: 998 !important;
         background: #0f1419 !important;
         padding: 4px 1.5rem !important;
