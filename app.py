@@ -459,7 +459,7 @@ def sticky_header(titulo: str):
     )
     # Posiciona as toolbars fixas alinhadas ao início real do conteúdo principal,
     # respeitando a sidebar (aberta ou fechada) em tempo real.
-    <script>
+   stcmp.html("""<script>
 (function(){
     function align(){
         try{
@@ -469,7 +469,7 @@ def sticky_header(titulo: str):
             
             var rect = main.getBoundingClientRect();
             var L = Math.round(rect.left) + 'px';
-            var W = Math.round(rect.width) + 'px'; // Calcula a largura exata do conteúdo
+            var W = Math.round(rect.width) + 'px'; 
             
             var sels = [
                 '.sticky-page-hdr',
@@ -485,7 +485,7 @@ def sticky_header(titulo: str):
                 var el = doc.querySelector(s);
                 if(el) {
                     el.style.setProperty('left', L, 'important');
-                    el.style.setProperty('width', W, 'important'); // Aplica a largura calculada
+                    el.style.setProperty('width', W, 'important'); 
                 }
             });
         }catch(e){}
@@ -495,25 +495,6 @@ def sticky_header(titulo: str):
     setTimeout(align, 100);
     setTimeout(align, 400);
     try{ new ResizeObserver(align).observe(window.parent.document.documentElement); }catch(e){}
-})();
-</script>
-
-
-def _scroll_to_top(page_id: str):
-    """Rola para o topo ao navegar entre páginas (detecta troca via session_state)."""
-    if st.session_state.get("_cur_page") == page_id:
-        return
-    st.session_state["_cur_page"] = page_id
-    stcmp.html("""<script>
-(function(){
-  function go(){
-    try{
-      var el=window.parent.document.querySelector('[data-testid="stMainBlockContainer"]');
-      if(el){ el.scrollTop=0; }
-      window.parent.scrollTo(0,0);
-    }catch(e){}
-  }
-  go(); setTimeout(go, 80);
 })();
 </script>""", height=0, scrolling=False)
 
