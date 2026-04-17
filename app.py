@@ -153,82 +153,26 @@ st.markdown("""
         padding-top: 3.8rem !important;
     }
 
-    /* ── TOOLBARS FIXAS — todas as páginas internas (exceto Dashboard) ── */
-    /* left:0/right:0 garante que o contêiner fixo seja largo o suficiente
-       para acomodar as colunas renderizadas por Streamlit sem cortar o lado direito.
-       A sidebar tem z-index maior e fica por cima, sem conflito visual. */
-    /* Loja — linha 1: busca + botões */
-    [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r1) {
-        position: fixed !important;
-        top: 94px !important;
-        left: 0 !important;
-        right: 0 !important;
-        z-index: 998 !important;
-        background: #0f1419 !important;
-        padding: 5px 0 !important;
-    }
-    /* Loja — linha 2: filtros (última linha fixa — recebe sombra de separação) */
-    [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r2) {
-        position: fixed !important;
-        top: 152px !important;
-        left: 0 !important;
-        right: 0 !important;
-        z-index: 997 !important;
-        background: #0f1419 !important;
-        padding: 5px 0 4px !important;
-        box-shadow: 0 6px 24px rgba(0,0,0,0.6) !important;
-    }
-    /* Histórico + Exportar — linha de filtros/controles */
-    [data-testid="stHorizontalBlock"]:has(.tlbr-hist-r1),
-    [data-testid="stHorizontalBlock"]:has(.tlbr-exp-r1) {
-        position: fixed !important;
-        top: 94px !important;
-        left: 0 !important;
-        right: 0 !important;
-        z-index: 998 !important;
-        background: #0f1419 !important;
-        padding: 5px 0 4px !important;
-        box-shadow: 0 6px 24px rgba(0,0,0,0.6) !important;
-    }
-    /* Fornecedores + Admin — barra de abas */
-    [data-testid="stVerticalBlock"]:has(.tlbr-forn-tabs) [data-testid="stTabBar"],
-    [data-testid="stVerticalBlock"]:has(.tlbr-admin-tabs) [data-testid="stTabBar"] {
-        position: fixed !important;
-        top: 94px !important;
-        left: 0 !important;
-        right: 0 !important;
-        z-index: 998 !important;
-        background: #0f1419 !important;
-        padding: 4px 1.5rem !important;
-        box-shadow: 0 6px 24px rgba(0,0,0,0.6) !important;
-    }
-    /* Garante que as colunas dentro das toolbars fixas se ajustem à largura do contêiner fixo */
-    [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r1) > [data-testid="column"],
-    [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r2) > [data-testid="column"],
-    [data-testid="stHorizontalBlock"]:has(.tlbr-hist-r1) > [data-testid="column"],
-    [data-testid="stHorizontalBlock"]:has(.tlbr-exp-r1) > [data-testid="column"] {
-        width: auto !important;
-        min-width: 0 !important;
-        max-width: none !important;
-        flex-shrink: 1 !important;
-    }
-    /* Oculta visualmente o iframe do stcmp sem impedir execução de scripts */
-    [data-testid="stCustomComponentV1"] {
-        height: 0 !important;
-        min-height: 0 !important;
-        overflow: hidden !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        line-height: 0 !important;
-    }
-    /* Botões compactos dentro das toolbars fixas */
-    [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r1) button {
-        padding: 3px 10px !important;
-        font-size: 12px !important;
-        min-height: 32px !important;
-        height: 32px !important;
-        line-height: 1 !important;
-    }
+    ANTES (seu arquivo agora):
+├─ Linha 154:     }
+├─ Linha 155:     
+├─ Linha 156:     /* ── TOOLBARS FIXAS...  ← APAGAR ISSO
+├─ Linha 157:     /* left:0/right:0...
+├─ ... (mais 75 linhas) ...
+├─ Linha 231:     }
+├─ Linha 232:     
+├─ Linha 233:     /* Mobile */            ← PARAR AQUI (não apagar)
+├─ Linha 234:     @media (max-width...
+
+DEPOIS (seu arquivo novo):
+├─ Linha 154:     }
+├─ Linha 155:     
+├─ Linha 156:     /* ── TOOLBARS FIXAS — CORRIGIDO ── */  ← NOVO
+├─ Linha 157:     /* Agora com altura...
+├─ ... (código novo completo) ...
+├─ Linha ~240:     }
+├─ Linha ~241:     
+├─ Linha ~242:     /* Mobile */            ← continua normal
 
     /* Mobile */
     @media (max-width: 768px) {
