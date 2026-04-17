@@ -142,7 +142,7 @@ st.markdown("""
         position: fixed !important;
         top: 2.875rem;
         left: 21.125rem;
-        /*right: 0;*/
+        right: 0;
         z-index: 999;
         background: #0f1419;
         padding: 10px 1.5rem 10px;
@@ -162,7 +162,7 @@ st.markdown("""
         position: fixed !important;
         top: 94px !important;
         left: 0 !important;
-        /*right: 0*/ !important;
+        right: 0 !important;
         z-index: 998 !important;
         background: #0f1419 !important;
         padding: 5px 0 !important;
@@ -172,7 +172,7 @@ st.markdown("""
         position: fixed !important;
         top: 152px !important;
         left: 0 !important;
-        /*right: 0*/ !important;
+        right: 0 !important;
         z-index: 997 !important;
         background: #0f1419 !important;
         padding: 5px 0 4px !important;
@@ -184,7 +184,7 @@ st.markdown("""
         position: fixed !important;
         top: 94px !important;
         left: 0 !important;
-        /*right: 0*/ !important;
+        right: 0 !important;
         z-index: 998 !important;
         background: #0f1419 !important;
         padding: 5px 0 4px !important;
@@ -196,7 +196,7 @@ st.markdown("""
         position: fixed !important;
         top: 94px !important;
         left: 0 !important;
-        /*right: 0*/ !important;
+        right: 0 !important;
         z-index: 998 !important;
         background: #0f1419 !important;
         padding: 4px 1.5rem !important;
@@ -459,42 +459,52 @@ def sticky_header(titulo: str):
     )
     # Posiciona as toolbars fixas alinhadas ao início real do conteúdo principal,
     # respeitando a sidebar (aberta ou fechada) em tempo real.
-   stcmp.html("""<script>
+    stcmp.html("""<script>
 (function(){
-    function align(){
-        try{
-            var doc = window.parent.document;
-            var main = doc.querySelector('[data-testid="stMain"]');
-            if(!main) return;
-            
-            var rect = main.getBoundingClientRect();
-            var L = Math.round(rect.left) + 'px';
-            var W = Math.round(rect.width) + 'px'; 
-            
-            var sels = [
-                '.sticky-page-hdr',
-                '[data-testid="stHorizontalBlock"]:has(.tlbr-loja-r1)',
-                '[data-testid="stHorizontalBlock"]:has(.tlbr-loja-r2)',
-                '[data-testid="stHorizontalBlock"]:has(.tlbr-hist-r1)',
-                '[data-testid="stHorizontalBlock"]:has(.tlbr-exp-r1)',
-                '[data-testid="stVerticalBlock"]:has(.tlbr-forn-tabs) [data-testid="stTabBar"]',
-                '[data-testid="stVerticalBlock"]:has(.tlbr-admin-tabs) [data-testid="stTabBar"]'
-            ];
-            
-            sels.forEach(function(s){
-                var el = doc.querySelector(s);
-                if(el) {
-                    el.style.setProperty('left', L, 'important');
-                    el.style.setProperty('width', W, 'important'); 
-                }
-            });
-        }catch(e){}
-    }
-    
-    align();
-    setTimeout(align, 100);
-    setTimeout(align, 400);
-    try{ new ResizeObserver(align).observe(window.parent.document.documentElement); }catch(e){}
+  function align(){
+    try{
+      var doc = window.parent.document;
+      var main = doc.querySelector('[data-testid="stMain"]');
+      if(!main) return;
+      var L = Math.round(main.getBoundingClientRect().left) + 'px';
+      var sels = [
+        '.sticky-page-hdr',
+        '[data-testid="stHorizontalBlock"]:has(.tlbr-loja-r1)',
+        '[data-testid="stHorizontalBlock"]:has(.tlbr-loja-r2)',
+        '[data-testid="stHorizontalBlock"]:has(.tlbr-hist-r1)',
+        '[data-testid="stHorizontalBlock"]:has(.tlbr-exp-r1)',
+        '[data-testid="stVerticalBlock"]:has(.tlbr-forn-tabs) [data-testid="stTabBar"]',
+        '[data-testid="stVerticalBlock"]:has(.tlbr-admin-tabs) [data-testid="stTabBar"]'
+      ];
+      sels.forEach(function(s){
+        var el = doc.querySelector(s);
+        if(el) el.style.setProperty('left', L, 'important');
+      });
+    }catch(e){}
+  }
+  align();
+  setTimeout(align, 100);
+  setTimeout(align, 400);
+  try{ new ResizeObserver(align).observe(window.parent.document.documentElement); }catch(e){}
+})();
+</script>""", height=0, scrolling=False)
+
+
+def _scroll_to_top(page_id: str):
+    """Rola para o topo ao navegar entre páginas (detecta troca via session_state)."""
+    if st.session_state.get("_cur_page") == page_id:
+        return
+    st.session_state["_cur_page"] = page_id
+    stcmp.html("""<script>
+(function(){
+  function go(){
+    try{
+      var el=window.parent.document.querySelector('[data-testid="stMainBlockContainer"]');
+      if(el){ el.scrollTop=0; }
+      window.parent.scrollTo(0,0);
+    }catch(e){}
+  }
+  go(); setTimeout(go, 80);
 })();
 </script>""", height=0, scrolling=False)
 
@@ -1294,7 +1304,7 @@ def pagina_loja(loja: str):
         titulo = f"📁 {sec['nome']} ({len(itens_all)} itens)"
         if npend > 0: titulo += f" · {npend} pendente(s)"
 
-        with st.expander(titulo, expanded=len(itens_all) > 0):
+        with st.expander(titulo, expanded=True):
             if itens:
                 for idx, item in enumerate(itens):
                     iid  = item["id"]
