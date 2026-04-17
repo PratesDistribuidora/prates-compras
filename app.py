@@ -459,35 +459,44 @@ def sticky_header(titulo: str):
     )
     # Posiciona as toolbars fixas alinhadas ao início real do conteúdo principal,
     # respeitando a sidebar (aberta ou fechada) em tempo real.
-    stcmp.html("""<script>
+    <script>
 (function(){
-  function align(){
-    try{
-      var doc = window.parent.document;
-      var main = doc.querySelector('[data-testid="stMain"]');
-      if(!main) return;
-      var L = Math.round(main.getBoundingClientRect().left) + 'px';
-      var sels = [
-        '.sticky-page-hdr',
-        '[data-testid="stHorizontalBlock"]:has(.tlbr-loja-r1)',
-        '[data-testid="stHorizontalBlock"]:has(.tlbr-loja-r2)',
-        '[data-testid="stHorizontalBlock"]:has(.tlbr-hist-r1)',
-        '[data-testid="stHorizontalBlock"]:has(.tlbr-exp-r1)',
-        '[data-testid="stVerticalBlock"]:has(.tlbr-forn-tabs) [data-testid="stTabBar"]',
-        '[data-testid="stVerticalBlock"]:has(.tlbr-admin-tabs) [data-testid="stTabBar"]'
-      ];
-      sels.forEach(function(s){
-        var el = doc.querySelector(s);
-        if(el) el.style.setProperty('left', L, 'important');
-      });
-    }catch(e){}
-  }
-  align();
-  setTimeout(align, 100);
-  setTimeout(align, 400);
-  try{ new ResizeObserver(align).observe(window.parent.document.documentElement); }catch(e){}
+    function align(){
+        try{
+            var doc = window.parent.document;
+            var main = doc.querySelector('[data-testid="stMain"]');
+            if(!main) return;
+            
+            var rect = main.getBoundingClientRect();
+            var L = Math.round(rect.left) + 'px';
+            var W = Math.round(rect.width) + 'px'; // Calcula a largura exata do conteúdo
+            
+            var sels = [
+                '.sticky-page-hdr',
+                '[data-testid="stHorizontalBlock"]:has(.tlbr-loja-r1)',
+                '[data-testid="stHorizontalBlock"]:has(.tlbr-loja-r2)',
+                '[data-testid="stHorizontalBlock"]:has(.tlbr-hist-r1)',
+                '[data-testid="stHorizontalBlock"]:has(.tlbr-exp-r1)',
+                '[data-testid="stVerticalBlock"]:has(.tlbr-forn-tabs) [data-testid="stTabBar"]',
+                '[data-testid="stVerticalBlock"]:has(.tlbr-admin-tabs) [data-testid="stTabBar"]'
+            ];
+            
+            sels.forEach(function(s){
+                var el = doc.querySelector(s);
+                if(el) {
+                    el.style.setProperty('left', L, 'important');
+                    el.style.setProperty('width', W, 'important'); // Aplica a largura calculada
+                }
+            });
+        }catch(e){}
+    }
+    
+    align();
+    setTimeout(align, 100);
+    setTimeout(align, 400);
+    try{ new ResizeObserver(align).observe(window.parent.document.documentElement); }catch(e){}
 })();
-</script>""", height=0, scrolling=False)
+</script>
 
 
 def _scroll_to_top(page_id: str):
