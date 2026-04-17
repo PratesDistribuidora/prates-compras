@@ -1159,7 +1159,7 @@ def pagina_loja(loja: str):
                    key=f"fpr_{loja}", label_visibility="collapsed")
 
     # Espaçador: compensa as 2 linhas de toolbar + cabeçalho fixos (saem do fluxo)
-    st.markdown('<div style="height:130px"></div>', unsafe_allow_html=True)
+    st.markdown('<div style="height:180px"></div>', unsafe_allow_html=True)
 
     # Gerenciar Seções
     if st.session_state.get(f"gs_{loja}"):
