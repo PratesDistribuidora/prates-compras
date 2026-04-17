@@ -11,13 +11,6 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
 from typing import Optional, List, Any
-from reportlab.lib.pagesizes import A4, landscape
-from reportlab.lib import colors as rl_colors
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import cm
-import streamlit.components.v1 as stcmp
-from PIL import Image as _PIL_Image
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CONFIGURAÇÃO INICIAL & LOGGING
@@ -25,23 +18,9 @@ from PIL import Image as _PIL_Image
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
 
-try:
-    from PIL import ImageDraw as _ImageDraw
-    _img = _PIL_Image.open("logo.jpg").convert("RGBA")
-    _s   = min(_img.size)
-    _img = _img.crop(((_img.width - _s) // 2, (_img.height - _s) // 2,
-                      (_img.width + _s) // 2, (_img.height + _s) // 2))
-    _img = _img.resize((128, 128), _PIL_Image.LANCZOS)
-    _mask = _PIL_Image.new("L", (128, 128), 0)
-    _ImageDraw.Draw(_mask).ellipse((0, 0, 128, 128), fill=255)
-    _img.putalpha(_mask)
-    _favicon = _img
-except Exception:
-    _favicon = "🛒"
-
 st.set_page_config(
     page_title="Prates Compras",
-    page_icon=_favicon,
+    page_icon="🛒",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -137,54 +116,24 @@ st.markdown("""
         border-color: #8b949e !important;
     }
 
-    /* ── CABEÇALHO FIXO DAS PÁGINAS INTERNAS ── */
+    /* ── CABEÇALHO FIXO DAS PÁGINAS INTERNAS — position:fixed é o único método confiável no Streamlit ── */
     .sticky-page-hdr {
         position: fixed !important;
         top: 2.875rem;
-        left: 21.125rem;
+        left: 21.125rem;   /* largura padrão da sidebar no Streamlit */
         right: 0;
         z-index: 999;
         background: #0f1419;
-        padding: 10px 1.5rem 10px;
-        border-bottom: 1px solid rgba(33,38,45,0.9);
+        padding: 10px 1.5rem 12px;
+        border-bottom: 1px solid #21262d;
     }
     /* Compensa o header fixo empurrando o conteúdo para baixo */
     [data-testid="block-container"] {
         padding-top: 3.8rem !important;
     }
-
-    ANTES (seu arquivo agora):
-├─ Linha 154:     }
-├─ Linha 155:     
-├─ Linha 156:     /* ── TOOLBARS FIXAS...  ← APAGAR ISSO
-├─ Linha 157:     /* left:0/right:0...
-├─ ... (mais 75 linhas) ...
-├─ Linha 231:     }
-├─ Linha 232:     
-├─ Linha 233:     /* Mobile */            ← PARAR AQUI (não apagar)
-├─ Linha 234:     @media (max-width...
-
-DEPOIS (seu arquivo novo):
-├─ Linha 154:     }
-├─ Linha 155:     
-├─ Linha 156:     /* ── TOOLBARS FIXAS — CORRIGIDO ── */  ← NOVO
-├─ Linha 157:     /* Agora com altura...
-├─ ... (código novo completo) ...
-├─ Linha ~240:     }
-├─ Linha ~241:     
-├─ Linha ~242:     /* Mobile */            ← continua normal
-
-    /* Mobile */
+    /* Mobile: sidebar some, cabeçalho ocupa largura total */
     @media (max-width: 768px) {
         .sticky-page-hdr { left: 0 !important; padding: 8px 1rem 10px !important; }
-        [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r1),
-        [data-testid="stHorizontalBlock"]:has(.tlbr-loja-r2),
-        [data-testid="stHorizontalBlock"]:has(.tlbr-hist-r1),
-        [data-testid="stHorizontalBlock"]:has(.tlbr-exp-r1),
-        [data-testid="stVerticalBlock"]:has(.tlbr-forn-tabs) [data-testid="stTabBar"],
-        [data-testid="stVerticalBlock"]:has(.tlbr-admin-tabs) [data-testid="stTabBar"] {
-            left: 0 !important;
-        }
         [data-testid="block-container"] { padding: 3.8rem 0.5rem 1rem !important; }
         .kpi-val { font-size: 18px !important; }
         button { min-height: 44px !important; }
@@ -255,7 +204,7 @@ LOJAS = {
 STATUS_ALL = ["Pendente", "Aprovado", "Comprado", "Entregue", "Cancelado"]
 STATUS_AT  = ("Pendente", "Aprovado")       # tuple → hashable para @st.cache_data
 STATUS_HI  = ("Comprado", "Entregue", "Cancelado")
-PRIO       = ["Alta", "Média", "Baixa"]
+PRIO       = ["Alta", "Media", "Baixa"]
 UNID       = ["UN", "CX", "PCT", "KG", "MT", "LT", "RL", "PAR"]
 
 # Mapa de dias da semana em português
@@ -401,57 +350,6 @@ def sticky_header(titulo: str):
         f"</div>",
         unsafe_allow_html=True
     )
-    # Posiciona as toolbars fixas alinhadas ao início real do conteúdo principal,
-    # respeitando a sidebar (aberta ou fechada) em tempo real.
-    stcmp.html("""<script>
-(function(){
-  function align(){
-    try{
-      var doc = window.parent.document;
-      var main = doc.querySelector('[data-testid="stMain"]');
-      if(!main) return;
-      var L = Math.round(main.getBoundingClientRect().left) + 'px';
-      var sels = [
-        '.sticky-page-hdr',
-        '[data-testid="stHorizontalBlock"]:has(.tlbr-loja-r1)',
-        '[data-testid="stHorizontalBlock"]:has(.tlbr-loja-r2)',
-        '[data-testid="stHorizontalBlock"]:has(.tlbr-hist-r1)',
-        '[data-testid="stHorizontalBlock"]:has(.tlbr-exp-r1)',
-        '[data-testid="stVerticalBlock"]:has(.tlbr-forn-tabs) [data-testid="stTabBar"]',
-        '[data-testid="stVerticalBlock"]:has(.tlbr-admin-tabs) [data-testid="stTabBar"]'
-      ];
-      sels.forEach(function(s){
-        var el = doc.querySelector(s);
-        if(el) el.style.setProperty('left', L, 'important');
-      });
-    }catch(e){}
-  }
-  align();
-  setTimeout(align, 100);
-  setTimeout(align, 400);
-  try{ new ResizeObserver(align).observe(window.parent.document.documentElement); }catch(e){}
-})();
-</script>""", height=0, scrolling=False)
-
-
-def _scroll_to_top(page_id: str):
-    """Rola para o topo ao navegar entre páginas (detecta troca via session_state)."""
-    if st.session_state.get("_cur_page") == page_id:
-        return
-    st.session_state["_cur_page"] = page_id
-    stcmp.html("""<script>
-(function(){
-  function go(){
-    try{
-      var el=window.parent.document.querySelector('[data-testid="stMainBlockContainer"]');
-      if(el){ el.scrollTop=0; }
-      window.parent.scrollTo(0,0);
-    }catch(e){}
-  }
-  go(); setTimeout(go, 80);
-})();
-</script>""", height=0, scrolling=False)
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CRUD — FORNECEDORES
@@ -838,47 +736,6 @@ with st.sidebar:
             st.rerun()
 
     st.divider()
-
-    # ── Alterar própria senha ──
-    if st.button("🔑 Alterar Senha", use_container_width=True, key="btn_pwd", type="primary"):
-        st.session_state["show_pwd"] = not st.session_state.get("show_pwd", False)
-
-    if st.session_state.get("show_pwd"):
-        with st.form("form_alterar_senha"):
-            s_atual = st.text_input("Senha atual", type="password")
-            s_nova  = st.text_input("Nova senha",  type="password",
-                                    help=f"Mín. {SENHA_MIN_CHARS} caracteres e 1 número")
-            s_conf  = st.text_input("Confirmar",   type="password")
-            if st.form_submit_button("Salvar senha", type="primary", use_container_width=True):
-                if not s_atual or not s_nova or not s_conf:
-                    st.warning("Preencha todos os campos.")
-                elif s_nova != s_conf:
-                    st.error("As senhas não coincidem.")
-                else:
-                    err_s = validar_senha_forte(s_nova)
-                    if err_s:
-                        st.error(f"🔒 {err_s}")
-                    else:
-                        # Verificar senha atual
-                        try:
-                            _r = sb.table("pc_usuarios").select("senha_hash") \
-                                   .eq("id", u["id"]).execute()
-                            h = _r.data[0]["senha_hash"] if _r.data else ""
-                            ok_atual = verify_pwd(s_atual, h) if h.startswith("$2b$") \
-                                       else hashlib.sha256(s_atual.encode()).hexdigest() == h
-                        except Exception as _e:
-                            logger.error(f"Erro verificar senha: {_e}"); ok_atual = False
-                        if not ok_atual:
-                            st.error("Senha atual incorreta.")
-                        else:
-                            err = update_usuario(u["id"], {"senha_hash": hash_pwd(s_nova)})
-                            if err:
-                                st.error(err)
-                            else:
-                                log_audit("ALTERAR_SENHA", "pc_usuarios", u["id"], u["email"])
-                                st.success("Senha alterada!")
-                                st.session_state["show_pwd"] = False
-
     if st.button("🚪 Sair", use_container_width=True, type="primary"):
         st.session_state.usuario = None
         st.rerun()
@@ -1082,28 +939,22 @@ def pagina_dashboard():
 
 
 def pagina_loja(loja: str):
-    _scroll_to_top(f"loja_{loja}")
     info = LOJAS[loja]
     sticky_header(f"{info['icone']} {info['nome']}")
 
-    c1, c2, c3 = st.columns([5, 1, 1])
-    c1.markdown('<span class="tlbr-loja-r1" style="display:none"></span>', unsafe_allow_html=True)
+    c1, c2, c3 = st.columns([3, 1, 1])
     busca = c1.text_input("", placeholder="Buscar produto, marca, SKU...",
                           label_visibility="collapsed", key=f"busc_{loja}")
-    if c2.button("＋ Produto", use_container_width=True, key=f"btnp_{loja}", type="primary"):
+    if c2.button("+ Produto", use_container_width=True, key=f"btnp_{loja}", type="primary"):
         st.session_state[f"cp_{loja}"] = not st.session_state.get(f"cp_{loja}", False)
     if c3.button("Seções", use_container_width=True, key=f"btns_{loja}", type="primary"):
         st.session_state[f"gs_{loja}"] = not st.session_state.get(f"gs_{loja}", False)
 
     f1, f2 = st.columns(2)
-    f1.markdown('<span class="tlbr-loja-r2" style="display:none"></span>', unsafe_allow_html=True)
     fst = f1.radio("", ["Todos"]+list(STATUS_AT), horizontal=True,
                    key=f"fst_{loja}", label_visibility="collapsed")
     fpr = f2.radio("", ["Todas"]+PRIO, horizontal=True,
                    key=f"fpr_{loja}", label_visibility="collapsed")
-
-    # Espaçador: compensa as 2 linhas de toolbar + cabeçalho fixos (saem do fluxo)
-    st.markdown('<div style="height:180px"></div>', unsafe_allow_html=True)
 
     # Gerenciar Seções
     if st.session_state.get(f"gs_{loja}"):
@@ -1228,10 +1079,7 @@ def pagina_loja(loja: str):
 
         itens = itens_all[:]
         if fst != "Todos":  itens = [i for i in itens if i.get("status") == fst]
-        if fpr != "Todas":
-            # Normaliza "Media" (dados antigos) e "Média" (dados novos)
-            fpr_alt = "Media" if fpr == "Média" else fpr
-            itens = [i for i in itens if i.get("prioridade") in (fpr, fpr_alt)]
+        if fpr != "Todas":  itens = [i for i in itens if i.get("prioridade") == fpr]
         if busca:
             b = busca.lower()
             itens = [i for i in itens if b in " ".join([
@@ -1357,12 +1205,9 @@ def pagina_loja(loja: str):
                             epr  = re2[2].number_input("Preço", min_value=0.0,
                                                         value=float(item.get("preco_unit",0)),
                                                         step=0.01, format="%.2f")
-                            _prio_val = item.get("prioridade", "Média")
-                            # Normaliza valor antigo "Media" → "Média"
-                            if _prio_val == "Media": _prio_val = "Média"
                             eprio = re2[3].selectbox("Prioridade", PRIO,
-                                                      index=PRIO.index(_prio_val)
-                                                      if _prio_val in PRIO else 1)
+                                                      index=PRIO.index(item.get("prioridade","Media"))
+                                                      if item.get("prioridade") in PRIO else 1)
                             _dt_val = ""
                             try:
                                 if item.get("dt_necessidade"):
@@ -1416,16 +1261,12 @@ def pagina_loja(loja: str):
 
 
 def pagina_historico():
-    _scroll_to_top("historico")
     sticky_header("📅 Histórico")
     f1, f2, f3, f4 = st.columns(4)
-    f1.markdown('<span class="tlbr-hist-r1" style="display:none"></span>', unsafe_allow_html=True)
     fl = f1.selectbox("Loja",       ["Todas","Distribuidora","Sublimação"], label_visibility="collapsed")
     fs = f2.selectbox("Status",     ["Todos"]+list(STATUS_HI),             label_visibility="collapsed")
     fp = f3.selectbox("Prioridade", ["Todas"]+PRIO,                        label_visibility="collapsed")
     fb = f4.text_input("",          placeholder="Buscar...",               label_visibility="collapsed")
-    # Espaçador: compensa a linha de toolbar + cabeçalho fixos (saem do fluxo)
-    st.markdown('<div style="height:70px"></div>', unsafe_allow_html=True)
 
     @st.cache_data(ttl=60, show_spinner=False)
     def load_historico():
@@ -1471,14 +1312,10 @@ def pagina_historico():
 
 
 def pagina_exportar():
-    _scroll_to_top("exportar")
     sticky_header("📥 Exportar")
     c1, c2 = st.columns(2)
-    c1.markdown('<span class="tlbr-exp-r1" style="display:none"></span>', unsafe_allow_html=True)
     le  = c1.selectbox("Loja", ["Ambas","Distribuidora","Sublimação"])
     inc = c2.checkbox("Incluir Histórico")
-    # Espaçador: compensa a linha de toolbar + cabeçalho fixos (saem do fluxo)
-    st.markdown('<div style="height:70px"></div>', unsafe_allow_html=True)
 
     # CORRIGIDO: "Sublimação" com acento (estava "Sublimacao" → KeyError)
     lk_map = {"Ambas":"ambas","Distribuidora":"distribuidora","Sublimação":"sublimacao"}
@@ -1562,132 +1399,9 @@ def pagina_exportar():
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True)
 
-    st.divider()
-
-    if st.button("Gerar PDF", use_container_width=True, type="primary"):
-        with st.spinner("Gerando PDF..."):
-            sf     = None if inc else STATUS_AT
-            lojas_ = ["distribuidora","sublimacao"] if lk == "ambas" else [lk]
-            fme    = {f["id"]: f["nome"] for f in get_fornecedores()}
-
-            buf = io.BytesIO()
-            doc = SimpleDocTemplate(
-                buf, pagesize=landscape(A4),
-                leftMargin=1.2*cm, rightMargin=1.2*cm,
-                topMargin=1.5*cm, bottomMargin=1.5*cm
-            )
-            styles = getSampleStyleSheet()
-            c_title  = rl_colors.HexColor("#1a1a2e")
-            c_hdr    = rl_colors.HexColor("#21262D")
-            c_row0   = rl_colors.HexColor("#F6F8FA")
-            c_row1   = rl_colors.white
-            c_border = rl_colors.HexColor("#D0D7DE")
-            c_total  = rl_colors.HexColor("#0366D6")
-            c_loja   = rl_colors.HexColor("#1a1a2e")
-
-            st_title = ParagraphStyle("pt", parent=styles["Title"],
-                                       fontSize=15, textColor=rl_colors.white,
-                                       spaceAfter=4, leading=18)
-            st_sub   = ParagraphStyle("ps", parent=styles["Normal"],
-                                       fontSize=8, textColor=rl_colors.HexColor("#6e7781"),
-                                       spaceAfter=10)
-            st_loja  = ParagraphStyle("pl", parent=styles["Heading2"],
-                                       fontSize=11, textColor=c_loja,
-                                       spaceBefore=10, spaceAfter=4)
-
-            elements = []
-
-            # Cabeçalho do documento
-            hdr_data = [[Paragraph("<b>GRUPO PRATES — GUIA DE COMPRAS</b>", st_title)]]
-            hdr_tbl  = Table(hdr_data, colWidths=[doc.width])
-            hdr_tbl.setStyle(TableStyle([
-                ("BACKGROUND",   (0,0), (-1,-1), c_title),
-                ("TOPPADDING",   (0,0), (-1,-1), 10),
-                ("BOTTOMPADDING",(0,0), (-1,-1), 10),
-                ("LEFTPADDING",  (0,0), (-1,-1), 14),
-                ("ROUNDEDCORNERS", (0,0), (-1,-1), [4,4,4,4]),
-            ]))
-            elements.append(hdr_tbl)
-            elements.append(Paragraph(
-                f"Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')} · "
-                f"{'Ativos' if sf else 'Todos (incl. histórico)'}", st_sub))
-
-            col_w = [3*cm, 5.5*cm, 2.8*cm, 2.2*cm, 3.2*cm, 1.5*cm, 1.4*cm, 2.4*cm, 2.4*cm, 2.4*cm, 2.4*cm]
-            hdrs_pdf = ["Seção","Produto","Marca","SKU","Fornecedor",
-                        "Qtd","Unid","Preço Unit.","Total","Prioridade","Status"]
-
-            for loja in lojas_:
-                info = LOJAS[loja]
-                elements.append(Paragraph(f"{info['icone']} {info['nome'].upper()}", st_loja))
-
-                data_pdf = [hdrs_pdf]
-                tl = 0.0
-
-                for sec in get_secoes(loja):
-                    for item in get_itens_secao(sec["id"], sf):
-                        data_pdf.append([
-                            sec["nome"],
-                            item.get("produto",""),
-                            item.get("marca","") or "",
-                            item.get("sku","") or "",
-                            fme.get(item.get("fornecedor_id"),"") or "",
-                            str(item.get("qtd","") or ""),
-                            item.get("unidade",""),
-                            fmt_brl(item.get("preco_unit",0)),
-                            fmt_brl(item.get("total",0)),
-                            item.get("prioridade",""),
-                            item.get("status",""),
-                        ])
-                        tl += float(item.get("total") or 0)
-
-                # Linha de total
-                data_pdf.append(["","","","","","","",
-                                  Paragraph("<b>TOTAL:</b>", styles["Normal"]),
-                                  Paragraph(f"<b>{fmt_brl(tl)}</b>", styles["Normal"]),
-                                  "",""])
-
-                t_pdf = Table(data_pdf, colWidths=col_w, repeatRows=1)
-                row_count = len(data_pdf)
-                t_pdf.setStyle(TableStyle([
-                    # Cabeçalho
-                    ("BACKGROUND",    (0,0), (-1,0), c_hdr),
-                    ("TEXTCOLOR",     (0,0), (-1,0), rl_colors.white),
-                    ("FONTNAME",      (0,0), (-1,0), "Helvetica-Bold"),
-                    ("FONTSIZE",      (0,0), (-1,0), 8),
-                    ("ALIGN",         (0,0), (-1,0), "CENTER"),
-                    # Linhas zebradas
-                    *[("BACKGROUND", (0,r), (-1,r), c_row0 if r%2==0 else c_row1)
-                      for r in range(1, row_count-1)],
-                    ("FONTSIZE",      (0,1), (-1,-1), 7.5),
-                    ("TEXTCOLOR",     (0,1), (-1,-1), rl_colors.HexColor("#24292F")),
-                    # Linha de total
-                    ("BACKGROUND",    (0,-1), (-1,-1), rl_colors.HexColor("#EBF5FF")),
-                    ("FONTNAME",      (7,-1), (8,-1), "Helvetica-Bold"),
-                    ("TEXTCOLOR",     (8,-1), (8,-1), c_total),
-                    # Grade
-                    ("GRID",          (0,0), (-1,-1), 0.3, c_border),
-                    ("VALIGN",        (0,0), (-1,-1), "MIDDLE"),
-                    ("TOPPADDING",    (0,0), (-1,-1), 4),
-                    ("BOTTOMPADDING", (0,0), (-1,-1), 4),
-                    ("ALIGN",         (5,1), (-1,-1), "CENTER"),
-                ]))
-                elements.append(t_pdf)
-                elements.append(Spacer(1, 0.4*cm))
-
-            doc.build(elements)
-            buf.seek(0)
-            st.download_button(
-                "⬇️ Baixar PDF", buf,
-                file_name=f"Compras_{datetime.now().strftime('%Y%m%d')}.pdf",
-                mime="application/pdf",
-                use_container_width=True)
-
 
 def pagina_fornecedores():
-    _scroll_to_top("fornecedores")
     sticky_header("🏭 Fornecedores")
-    st.markdown('<span class="tlbr-forn-tabs" style="display:none"></span>', unsafe_allow_html=True)
-    st.markdown('<div style="height:70px"></div>', unsafe_allow_html=True)
     tab_l, tab_n = st.tabs(["Lista", "Novo Fornecedor"])
 
     with tab_n:
@@ -1733,10 +1447,7 @@ def pagina_fornecedores():
 def pagina_admin():
     if u["acesso"] != "admin":
         st.error("Acesso restrito."); return
-    _scroll_to_top("admin")
     sticky_header("⚙️ Administração")
-    st.markdown('<span class="tlbr-admin-tabs" style="display:none"></span>', unsafe_allow_html=True)
-    st.markdown('<div style="height:70px"></div>', unsafe_allow_html=True)
     tab_u, tab_s = st.tabs(["Usuários", "Seções"])
 
     ACESSO_MAP = {
